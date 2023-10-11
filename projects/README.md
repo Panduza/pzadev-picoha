@@ -1,4 +1,4 @@
-# PicoHA Projects
+# PicoHA Projects
 
 
 - **template**: skeleton project
