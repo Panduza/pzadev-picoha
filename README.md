@@ -3,11 +3,12 @@ Pico Host Adapter is a project to transform the RaspberryPi Pico into host adapt
 
 ## Requirements
 
-- This project provides multiple firmware, one project firmware must support only one feature/interface at a time.
+- This project provides multiple firmware, one firmware must support only one feature/interface at a time.
 - USB IDs (vendor/model/serial) must allow a unique identification of the device and its function.
-- Each project must come with at least one python script that demonstrate how to simply use the device.
-- Each project build must be automated with a github action.
-- Each project sources must be independant (no shared library).
+- Each firmware must come with at least one python script that demonstrate how to simply use the device.
+- Each firmware build must be automated with a github action.
+- Each firmware must provides a list of requirement in its README + each requirement must be tested through python examples.
+- Each firmware sources must be independant (no shared libraries between projects) => temporary requirement to avoid early unstability
 
 ## Merge Archives
 
