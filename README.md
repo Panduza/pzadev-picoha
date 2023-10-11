@@ -1,6 +1,8 @@
 # Pza Devices Project Picoha
 Pico Host Adapter is a project to transform the RaspberryPi Pico into host adapter for embeded developers compatible with Panduza
 
+![](picoha_synoptic.png)
+
 ## Requirements
 
 - This project provides multiple firmware, one firmware must support only one feature/interface at a time.
