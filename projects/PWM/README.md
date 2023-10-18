@@ -47,7 +47,7 @@ After configuration, the firmware **must** generate a PWM signal on GPIO1 at a f
 
 #### [REQ_2003] PWM signal input
 
-After configuration, the firmware **must** read PWM signal on GPIO3.
+After configuration, the firmware **must** read PWM signal on GPIO3 for frequency and duty cycle measurement.
 
 #### [REQ_2004] PWM interrupt management:
 
