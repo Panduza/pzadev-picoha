@@ -43,3 +43,6 @@
 
 #### [REQ_7000] slave select
 **When the firmware starts, the GPIO 9 must be in high level**
+
+#### [REQ_8000] ACK response
+**The GPIO 8 must be able to read a ACK frame after a initiation of SPI communication**
