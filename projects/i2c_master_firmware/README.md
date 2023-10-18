@@ -44,7 +44,7 @@ The product **must** allow the user to easily read a message to I2C slave
 Request code => 0x3B01
 The frame **must** containe the slave address
 
-- ![Screenshot](C:\Users\UF825MBO\Downloads\frame.png)
+- ![Screenshot](frame.png)
 
 #### [REQ_6000] I2C bus requirements
 
