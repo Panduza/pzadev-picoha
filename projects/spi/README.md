@@ -2,7 +2,15 @@
 
 ## Requirements
 
-### SECTION 1: USB Interface & Protocol
+
+### SECTION 1 : Microcontroler used
+
+To develop the SPI host adapter, the firmware must be implemented in the Raspberry Pi Pico
+
+![](img/pinout.png)
+
+
+### SECTION 2 : USB Interface & Protocol
 
 #### [REQ_1000] USB IDs
 
