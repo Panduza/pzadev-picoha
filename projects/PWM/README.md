@@ -22,10 +22,11 @@ The RP2040 PWM block has 8 identical PWM slices, each with two output channels (
 
 #### [REQ_1000] USB IDs
 
-The USB IDs **must** be :
-- VENDOR_ID : 0x1209
-- MODEL_ID : 0x0001
-- SERIAL_SHORT : picoha-pwm
+The vendor ID of the device **must** be 0x16C0
+
+The product ID of the device **must** be 0x05E1
+
+The serial number of the device **must** be XXXX
 
 #### [REQ_1001] USB Protocol
 
