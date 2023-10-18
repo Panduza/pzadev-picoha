@@ -23,11 +23,15 @@
 
 #### [REQ_2000] Pin of PICO
 **The following pin must be used :**
-    <p>- GP6 : SPI clock</p>
-    <p>- GP7 : SPI transfert</p>
-    <p>- GP8 : SPI receive</p>
-    <p>- GP9 : SPI chip select (CS)</p>
-    <p>- GP25 : Internal LED</p> 
+
+|   PIN used   |   function |   type |
+|    GP6  |   SPI clock             |  OUTPUT |
+|    GP7  |  SPI Transfert (MOSI)   | OUTPUT  | 
+|    GP8  |   SPI Receive (MISO)    | Input Pull down  |
+|    GP9  |  SPI Chip Select (CS)   | OUTPUT | 
+|    GP25 |  Pico Internal LED      | OUTPUT |
+
+
 
 #### [REQ_3000] Start of the program
 **The internal led must be on, during the start and the excecution of the firmware**
