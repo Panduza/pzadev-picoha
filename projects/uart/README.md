@@ -42,59 +42,6 @@ There are two possible transfer mechanisms. For each, there can be only one requ
 
 **Request code**:
 
-Digital functions
-
-| Range start | Range end | Function              |
-| ----------- | --------- | --------------------- |
-| `0x0000`    | `0x00FF`  | Generic requests      |
-| `0x0100`    | `0x01FF`  | GPIO request codes    |
-| `0x0200`    | `0x02FF`  | PWM request codes     |
-| `0x0300`    | `0x03FF`  | Encoder request codes |
-| `0x0400`    | `0x04FF`  | Timer request codes   |
-
- Protocols
-
-| Range start | Range end | Function   |
-| ----------- | --------- | ---------- |
-| `0x3800`    | `0x38FF`  | UART       |
-| `0x3900`    | `0x39FF`  | SPI master |
-| `0x3A00`    | `0x3AFF`  | SPI slave  |
-| `0x3B00`    | `0x3BFF`  | I2C master |
-| `0x3C00`    | `0x3CFF`  | I2C slave  |
-| `0x3D00`    | `0x3DFF`  | Modbus RTU |
-| `0x3E00`    | `0x3EFF`  | *TBD*      |
-| `0x3F00`    | `0x3FFF`  | *TBD*      | 
-| `0x4000`    | `0x40FF`  | CAN 2.0    |
-| `0x4100`    | `0x41FF`  | CAN FD     |
-| `0x4200`    | `0x42FF`  | LIN        |
-
-Digital functions answers
-
-| Range start | Range end | Function              |
-| ----------- | --------- | --------------------- |
-| `0xFFFF`    | `0xFF00`  | Shared answers        |
-| `0xFEFF`    | `0xFE00`  | Generic answers       |
-| `0xFDFF`    | `0xFD00`  | GPIO answers codes    |
-| `0xFCFF`    | `0xFC00`  | PWM answers codes     |
-| `0xFBFF`    | `0xFB00`  | Encoder answers codes |
-| `0xFAFF`    | `0xFA00`  | Timer answers codes   |
-
- Protocols answers
-
-| Range start | Range end | Function   |
-| ----------- | --------- | ---------- |
-| `0xB4FF`    | `0xB400`  | UART       |
-| `0xB3FF`    | `0xB300`  | SPI master |
-| `0xB2FF`    | `0xB200`  | SPI slave  |
-| `0xB1FF`    | `0xB100`  | I2C master |
-| `0xB0FF`    | `0xB000`  | I2C slave  |
-| `0xAFFF`    | `0xAF00`  | Modbus RTU |
-| `0xAEFF`    | `0xAE00`  | *TBD*      |
-| `0xADFF`    | `0xAD00`  | *TBD*      | 
-| `0xACFF`    | `0xAC00`  | CAN 2.0    |
-| `0xABFF`    | `0xAB00`  | CAN FD     |
-| `0xAAFF`    | `0xAA00`  | LIN        |
-
 ***Requests***
 
 Generic requests
@@ -106,15 +53,6 @@ Generic requests
 | `0x0002`    | Version   |
 | `0x0003`    | IdGet     |
 
-GPIO request codes
-
-| Code        | Function  |
-| ----------- | --------- |
-| `0x0100`    | GpioDirSet|
-| `0x0101`    | GpioDirGet|
-| `0x0102`    | GpioRead  |
-| `0x0103`    | GpioWrite |
-
 UART
 
 | Code        | Function  |
@@ -123,11 +61,12 @@ UART
 | `0x3801`    | UartEscape|
 | `0x3802`    | DataTX    |
 | `0x3803`    | DataRXGet |
-| `0x3804`    | SetBaud   |
-| `0x3805`    | SetParity |
-| `0x3806`    | SetStopBit|
-| `0x3807`    | SetDataSz |
-| `0x3808`    | StopCom   |
+| `0x3804`    | BaudSet   |
+| `0x3805`    | BaudGet   |
+| `0x3806`    | SetParity |
+| `0x3807`    | SetStopBit|
+| `0x3808`    | SetDataSz |
+| `0x3809`    | StopCom   |
 
 ***Answers***
 
@@ -150,65 +89,63 @@ Generic answers
 | `0xFEFE`    | ItfTypeResp   |
 | `0xFEFD`    | IdResp        |
 
-GPIO answers codes
-
-| Code        | Function      |
-| ----------- | ------------- |
-| `0xFDFF`    | GpioValue     |
-| `0xFDFE`    | GpioDir       |
-
 UART answers
 
 | Code        | Function      |
 | ----------- | ------------- |
 | `0xB4FF`    | DataRX        |
+| `0xB4FE`    | Baud          |
 
 ### SECTION 2: Features
 
-#### [REQ_2000] Send data
+#### [REQ_2000] Enable UART
 
-The product **must** send data to one other product using UART communication.
+The product **must** enable the UART communication when the command `0x3800` is received.
 
-#### [REQ_2010] Receive data
+#### [REQ_2010] Disable UART
 
-The product **must** receive data from one other product using UART communication.
+The product **must** disable the UART communication when the command `0x3801` is received.
 
-#### [REQ_2020] Baud rate
+#### [REQ_2020] Send data
 
-The product **must** enable the baud rate configuration. The baud rate can be out of the standards baud rates used in UART.
+The product **must** send data to one other product using UART communication when the command `0x3802` is received.
 
-#### [REQ_2030] Parity
+#### [REQ_2030] Receive data
 
-The product **must** enable the parity bit configuration.
+The product **must** receive data from one other product using UART communication when the command `0x3803` is received.
 
-#### [REQ_2040] Stop bits
+#### [REQ_2040] Baud rate
 
-The product **must** enable the stop bits configuration.
+The product **must** provide a way to change and read the baudrate. The request code to set the baudrate is `0x3804`, the request code to read the baudrate is `0x3805`. The baud rate can be out of the standards baud rates used in UART.
 
-#### [REQ_2050] Data size
+#### [REQ_2050] Parity
 
-The product **must** enable the data size configuration.
+The product **must** configure the parity bit when the command `0x3806` is received.
 
-#### [REQ_2060] UART pinout
+#### [REQ_2060] Stop bits
+
+The product **must** configure the stop bits when the command `0x3807` is received.
+
+#### [REQ_2070] Data size
+
+The product **must** configure the data size when the command `0x3808` is received.
+
+#### [REQ_2080] UART pinout
 
 The product UART TX is connected to GP0 and the UART RX is connected to GP1.
 
-#### [REQ_2070] PIO
+#### [REQ_2090] PIO
 
 The product **must** use the Programmable I/O of the Pi Pico board.
 
-#### [REQ_2080] Start of the program
+#### [REQ_2100] Start of the program
 
-The internal LED of the product **must** be turned on during the start and the execution of the firmware.
+The internal LED of the product **must** be turned on at the start of the firmware. The LED state **must** be inverted at each command received by the product during the execution of the firmware.
 
-#### [REQ_2090] End of the program
-
-The internal LED of the product **must** be turned off when the firmware is stopped.
-
-#### [REQ_2100] UART disconnected
+#### [REQ_2110] UART disconnected
 
 The firmware **must** still be running when the UART connection is disconnected.
 
-#### [REQ_2110] UART stop
+#### [REQ_2120] UART stop
 
-The firmware **must** be able to stop the UART in the middle of a communication when the command ***StopCom*** is received.
+The firmware **must** be able to stop the UART in the middle of a communication when the command `0x3809` is received.
