@@ -21,6 +21,15 @@ The serial number of the device **must** be XXXX.
 
 The product **must** use a custom USB protocol. This protocol uses USB CDC and SLIP protocol to encapsulate the frames.
 
+SLIP description:
+
+| Hex value   | Abbreviation  | Description             |
+| ----------- | ------------- | ----------------------  |
+| `0xC0`      | END           | Frame End               |
+| `0xDB`      | ESC           | Frame Escape            |
+| `0xDC`      | ESC_END       | Transposed Frame End    |
+| `0xDD`      | ESC_ESC       | Transposed Frame Escape |
+
 The frames are composed of:
 
 <img src="img/data_frame.jpg" alt="Data frame" title="Data frame">
