@@ -70,7 +70,7 @@ request code polarity mode 0 = 0x000
 request code polarity mode 1 = 0x001
 request code polarity mode 2 = 0x003
 request code polarity mode 3 = 0x004
-All pins of SPI must be at high during idle state (Cf REQ_5000)
+
 
 ![](img/spi_mode_3.png)
 
