@@ -35,6 +35,22 @@ To communicate threw SPI, the following transaction must be followed:
 
 ### SECTION 2: Features
 
+To communicate with SPI, a code request has to be send to the firmware for each operations
+
+|  Code  |   function              |
+| -------      | ------------------------|     
+|    0x000       |      polarity mode 0       | 
+|    0x001       |  polarity mode 1  |
+|    0x002       |   polarity mode 2   |  
+|    0x003       |  polarity mode 3   |
+|    0x005       |  Enable interrupt  |
+|    0x006       |      Select and send clock frequency         | 
+|    0x007       |  Select the slave device  |
+|    0x008       |   write to slave   |  
+|    0x009       |  read from slave  |
+|    0x0A       |  Enable interrupt  |
+|    0x0B       |  Disable interrupt  |
+
 #### [REQ_5000] Pin of PICO
 **The following pin must be used :**
 
@@ -44,12 +60,16 @@ To communicate threw SPI, the following transaction must be followed:
 |    GP7       |  SPI Transfert (MOSI)   | OUTPUT |   HIGH     | 
 |    GP8       |   SPI Receive (MISO)    | Input  |   HIGH     |   
 |    GP9       |  SPI Chip Select (CS)   | OUTPUT |   HIGH     | 
-|    GP25      |    Pico Internal LED    | OUTPUT |   LOW     | 
+|    GP25      |    Pico Internal LED    | OUTPUT |   LOW      | 
 
 
 #### [REQ_6000] SPI polarity mode
 **The polarity mode will be the mode 3**
 
+request code polarity mode 0 = 0x000
+request code polarity mode 1 = 0x001
+request code polarity mode 2 = 0x003
+request code polarity mode 3 = 0x004
 All pins of SPI must be at high during idle state (Cf REQ_5000)
 
 ![](img/spi_mode_3.png)
@@ -65,15 +85,24 @@ All pins of SPI must be at high during idle state (Cf REQ_5000)
 
 #### [REQ_10000] clock frequency
 **When the firmware starts, the GPIO 6 must deliver a 125KHz clock frequency**
+request code = 0x006
 
 #### [REQ_20000] slave select
 **When the firmware starts, the GPIO 9 must be in high level**
+request code = 0x007
 
-#### [REQ_30000] request to slave
+#### [REQ_30000] write to slave
 **When the initiates the communication, it must send the Read byte followed by the slave address**
+request code = 0x008
 
-#### [REQ_40000] ACK response
-**The GPIO 8 must be able to read a ACK frame after the initiation of SPI communication**
+#### [REQ_40000] response from slave
+**The GPIO 8 must be able to read a ACK frame and data bytes from the slave device**
+request code = 0x009
 
-#### [REQ_50000] unused pins
+#### [REQ_50000] Interrupt mode
+**The firmware must be able to manage a interrupt mode**
+request code enable IRQ = 0x0A
+request code disable IRQ = 0x0B
+
+#### [REQ_60000] unused pins
 **The unused pins of the PICO must be configured as inputs**
