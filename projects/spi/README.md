@@ -84,7 +84,7 @@ request code polarity mode 3 = 0x004
 **The firmware must still be running when the SPI connections are disconnected**
 
 #### [REQ_10000] clock frequency
-**When the firmware starts, the GPIO 6 must deliver a 125KHz clock frequency**
+**The clock frequency of the SPI communication must be**
 <p>request code = 0x006</p>
 
 #### [REQ_20000] slave select
