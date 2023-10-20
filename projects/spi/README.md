@@ -85,24 +85,24 @@ All pins of SPI must be at high during idle state (Cf REQ_5000)
 
 #### [REQ_10000] clock frequency
 **When the firmware starts, the GPIO 6 must deliver a 125KHz clock frequency**
-request code = 0x006
+<p>request code = 0x006</p>
 
 #### [REQ_20000] slave select
 **When the firmware starts, the GPIO 9 must be in high level**
-request code = 0x007
+<p>request code = 0x007</p>
 
 #### [REQ_30000] write to slave
 **When the initiates the communication, it must send the Read byte followed by the slave address**
-request code = 0x008
+<p>request code = 0x008</p>
 
 #### [REQ_40000] response from slave
 **The GPIO 8 must be able to read a ACK frame and data bytes from the slave device**
-request code = 0x009
+<p>request code = 0x009</p>
 
 #### [REQ_50000] Interrupt mode
 **The firmware must be able to manage a interrupt mode**
-request code enable IRQ = 0x0A
-request code disable IRQ = 0x0B
+<p>request code enable IRQ = 0x0A</p>
+<p>request code disable IRQ = 0x0B</p>
 
 #### [REQ_60000] unused pins
 **The unused pins of the PICO must be configured as inputs**
