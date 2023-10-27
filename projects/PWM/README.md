@@ -22,7 +22,7 @@ The RP2040 PWM block has 8 identical PWM slices, each with two output channels (
 
 #### [REQ_1000] USB IDs
 
-The product USB IDs **must** be free shared USB VID/PID pair for CDC devices. The products can be differentiated with their iProduct.
+The product USB IDs **must** be free shared USB VID/PID pair for CDC devices. The products can be differentiated with their manufacturer and product identification and their serial number.
 
 The vendor ID of the device **must** be 0x16C0.
 
@@ -31,6 +31,8 @@ The product ID of the device **must** be 0x05E1.
 The iManufacturer of the device **must** be "panduza.io".
 
 The iProduct of the device **must** be "picoha-pwm".
+
+The serial number **must** be XXXX.
 
 #### [REQ_1001] USB Protocol
 
@@ -67,6 +69,7 @@ There are two possible transfer mechanisms. For each, there can be only one requ
 - Standard request : the transfer is initiated by the host and wait for an answer from the host adapter
 - Notification : the transfer is initiated by the host adapter and wait for an answer from the host
 
+### SECTION 2: Generic Requests and Answers
 
 ***Requests***
 
@@ -101,7 +104,7 @@ Generic answers
 | `0xFEFD`    | IdResp        |
 
 
-### SECTION 2: Features
+### SECTION 3: Features
 
 ***PWM Requests***
 
@@ -118,8 +121,10 @@ Generic answers
 
 | Code        | Function      |
 | ----------- | ------------- |
-| `0xFCFF`      | Frequency     |
-| `0xFCFE`      | DutyCycle     |
+| `0xFCFF`    | Frequency     |
+| `0xFCFE`    | DutyCycle     |
+| `0xFCFD`    | ErrFrequency  |
+| `0xFCFC`    | ErrDutyCycle  |
 
 #### [REQ_2000] PWM Start/Stop:
 
@@ -148,5 +153,5 @@ The firmware **must** measure the duty cycle of GPIO `X` when the request `0x020
 The firmware **must** support generating errors based on specific events.
 
 The events are : 
-- setting the frequency outside the operating interval
-- setting the duty cycle outside the operating interval
+- setting the frequency outside the operating interval will return the error code `0xFCFD`.
+- setting the duty cycle outside the operating interval will return the error code `0xFCFC`.
