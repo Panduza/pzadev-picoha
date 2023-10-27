@@ -7,6 +7,9 @@
 
 ### SECTION 1: USB Interface & Protocol
 
+<img src="img/schema_picoha_protocole.png" alt="USB Protocol" title="USB Protocol">
+<br/>
+
 #### [REQ_1000] USB IDs
 
 The product USB IDs **must** be free shared USB VID/PID pair for CDC devices. The products can be differentiated with their manufacturer and product identification and their serial number.
@@ -27,11 +30,11 @@ We chose to use the free shared USB VID/PID instead of the Raspberry Pi VID/PID 
 
 The product **must** use USB CDC as its device class.
 
-#### [REQ_1010] USB protocol
+#### [REQ_1020] USB protocol
 
 The product **must** use Serial Line Internet Protocol (SLIP) as its communication protocol. It is composed of a data payload and a flag that acts as an end delimiter. If this flag is present in the data, then an escape sequence precedes it, so that the receiver does not consider it as the end of the frame.
 
-<img src="img/slip.jpg" alt="Serial Line Internet Protocol" title="DSerial Line Internet Protocol">
+<img src="img/slip.jpg" alt="Serial Line Internet Protocol" title="Serial Line Internet Protocol">
 
 SLIP flags:
 
@@ -42,7 +45,7 @@ SLIP flags:
 | `0xDC`      | ESC_END       | Transposed Frame End    |
 | `0xDD`      | ESC_ESC       | Transposed Frame Escape |
 
-#### [REQ_1010] USB custom frame
+#### [REQ_1030] USB custom frame
 
 The product **must** use a custom frame protocol. The frames are composed of:
 
@@ -52,7 +55,7 @@ The product **must** use a custom frame protocol. The frames are composed of:
 - Data
 - a 16 bits CRC
 
-#### [REQ_1010] Custom frame CRC
+#### [REQ_1040] Custom frame CRC
 
 The CRC used in USB custom frame **must** be `crc-ccit-false`. It can be implemented in two different ways. By using the predefined:
 ```
@@ -63,7 +66,7 @@ Or by using the crcmod method:
 crc16 = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0xFFFF, xorOut=0x0000)
 ```
 
-#### [REQ_1010] Custom frame transfer machanism
+#### [REQ_1050] Custom frame transfer machanism
 
 There **must** be two possible transfer mechanisms. For each, there can be only one request at a time before receiving an answer.
 - Standard request: the transfer is initiated by the host and wait for an answer from the host adapter
@@ -110,58 +113,63 @@ There **must** be two possible transfer mechanisms. For each, there can be only 
 
 The product **must** answer when the ping request `0x0000` is received with the good answer `0xFFFF`.
 
-#### [REQ_2000] Interface type
+#### [REQ_2010] Interface type
 
 The product **must** answer when the ItfType request `0x0001` is received with the ItfTypeResp answer `0xFEFE`. The data returned must be `"picoha-uart"`.
 
-#### [REQ_2000] Version
+#### [REQ_2020] Version
 
 The product **must** answer when the Version request `0x0002` is received with the VersionResp answer `0xFEFF`. The data returned must be version of the firmware loaded on the product.
 
-#### [REQ_2000] ID
+#### [REQ_2030] ID
 
 The product **must** answer when the IdGet request `0x0003` is received with the IdResp answer `0xFEFD`. The data returned must be unique board ID of the product.
 
-#### [REQ_2000] Good
+#### [REQ_2040] Good
 
 The product **must** answer the code `0xFFFF` when no error has been encountered.
 
-#### [REQ_2000] Generic error
+#### [REQ_2050] Generic error
 
 The product **must** answer the code `0xFFFE` when a generic error is encountered.
 
-#### [REQ_2000] CRC error
+#### [REQ_2060] CRC error
 
 The product **must** answer the code `0xFFFD` when a CRC error is encountered.
 
-#### [REQ_2000] Unknown code error
+#### [REQ_2070] Unknown code error
 
 The product **must** answer the code `0xFFFC` when an unknown code error is encountered.
 
-#### [REQ_2000] Invalid arguments error
+#### [REQ_2080] Invalid arguments error
 
 The product **must** answer the code `0xFFFB` when an invalid arguments error is encountered.
 
-#### [REQ_2000] Busy error
+#### [REQ_2090] Busy error
 
 The product **must** answer the code `0xFFFA` when a busy error is encountered.
 
 ### SECTION 3: UART Requests
 
+| UART Setting | Range              | Default     |
+| -----------  | ------------------ | ----------- |
+| Baudrate     | up to 15.625 Mbaud | 115200 baud |
+| Parity bit   | 0 to 1 bit         | 0 bit       |
+| Stop bits    | 1 to 2 bits        | 1 bit       |
+| Data bits    | 5 to 9 bits        | 8 bits      |
+
 ***UART requests***
 
 | Code        | Function  |
 | ----------- | --------- |
-| `0x1000`    | UartBegin |
-| `0x1001`    | UartEscape|
-| `0x1002`    | DataTX    |
-| `0x1003`    | DataRXGet |
-| `0x1004`    | BaudSet   |
-| `0x1005`    | BaudGet   |
-| `0x1006`    | SetParity |
-| `0x1007`    | SetStopBit|
-| `0x1008`    | SetDataSz |
-| `0x1009`    | StopCom   |
+| `0x1000`    | DataTX    |
+| `0x1001`    | DataRXGet |
+| `0x1002`    | BaudSet   |
+| `0x1003`    | BaudGet   |
+| `0x1004`    | SetParity |
+| `0x1005`    | SetStopBit|
+| `0x1006`    | SetDataSz |
+| `0x1007`    | StopCom   |
 
 ***UART answers***
 
@@ -170,52 +178,56 @@ The product **must** answer the code `0xFFFA` when a busy error is encountered.
 | `0xEFFF`    | DataRX        |
 | `0xEFFE`    | Baud          |
 
-#### [REQ_2000] Enable UART
+#### [REQ_3000] Send data
 
-The product **must** enable the UART communication when the command `0x1000` is received.
+The product **must** send data to one other product using UART communication when the command `0x1000` is received.
 
-#### [REQ_2010] Disable UART
+#### [REQ_3010] Receive data
 
-The product **must** disable the UART communication when the command `0x1001` is received.
+The product **must** receive data from one other product using UART communication when the command `0x1001` is received.
 
-#### [REQ_2020] Send data
+#### [REQ_3020] Write baud rate
 
-The product **must** send data to one other product using UART communication when the command `0x1002` is received.
+The product **must** provide a way to change the baudrate. The request code to set the baudrate is `0x1002`. The baud rate can be out of the standards baud rates used in UART.
 
-#### [REQ_2030] Receive data
+#### [REQ_3030] Read baud rate
 
-The product **must** receive data from one other product using UART communication when the command `0x1003` is received.
+The product **must** provide a way to read the baudrate. The request code to read the baudrate is `0x1003`. The product must answer the baudrate value with the code `0xEFFE`.
 
-#### [REQ_2040] Baud rate
+#### [REQ_3040] Parity
 
-The product **must** provide a way to change and read the baudrate. The request code to set the baudrate is `0x1004`, the request code to read the baudrate is `0x1005`. The baud rate can be out of the standards baud rates used in UART.
+The product **must** configure the parity bit when the command `0x1004` is received. The parity bit can be set to 0 or 1 with the default value set to 0.
 
-#### [REQ_2050] Parity
+#### [REQ_3050] Stop bits
 
-The product **must** configure the parity bit when the command `0x1006` is received. The parity bit can be set to 0 or 1 with the default value set to 0.
+The product **must** configure the stop bits when the command `0x1005` is received. The stop bit can be set to 1 or 2 with the default value set to 1.
 
-#### [REQ_2060] Stop bits
+#### [REQ_3060] Data size
 
-The product **must** configure the stop bits when the command `0x1007` is received. The stop bit can be set to 1 or 2 with the default value set to 1.
-
-#### [REQ_2070] Data size
-
-The product **must** configure the data size when the command `0x1008` is received. The data size can be set to 5, 6, 7, 8 or 9 with the default value set to 8.
-
-#### [REQ_2080] UART pinout
-
-The product UART TX is connected to GP0 and the UART RX is connected to GP1.
+The product **must** configure the data size when the command `0x1006` is received. The data size can be set to 5, 6, 7, 8 or 9 with the default value set to 8.
 
 ### SECTION 4: Features
 
-#### [REQ_2090] PIO
+#### [REQ_4000] UART pinout
+
+The product UART TX is connected to GP0 and the UART RX is connected to GP1.
+
+#### [REQ_4010] Hardware flow control
+
+The product **must** enable hardware flow control.
+
+#### [REQ_4020] Hardware flow control pinout
+
+The product CTS is connected to GP2 and the RTS is connected to GP3.
+
+#### [REQ_4030] PIO
 
 The product **must** use the Programmable I/O of the Pi Pico board.
 
-#### [REQ_2100] Start of the program
+#### [REQ_4040] Start of the program
 
-The internal LED of the product **must** be turned on at the start of the firmware. The LED state **must** be inverted at each command received by the product during the execution of the firmware.
+The product **must** enable the UART communication at the start of the firmware using the default UART settings. The internal LED of the product **must** be turned on at the start of the firmware. The LED state **must** be inverted at each command received by the product during the execution of the firmware.
 
-#### [REQ_2120] UART stop
+#### [REQ_4050] UART stop
 
-The firmware **must** be able to stop the UART in the middle of a communication when the command `0x1009` is received.
+The firmware **must** be able to stop the UART in the middle of a communication when the command `0x1007` is received.
