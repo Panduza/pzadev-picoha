@@ -57,13 +57,24 @@ The product **must** use a custom frame protocol named HA protocol. The frames a
 
 #### [REQ_1040] HA protocol CRC
 
-The CRC used in USB HA protocol **must** be `crc-ccit-false`. It can be implemented in two different ways. By using the predefined:
-```
-crc16 = crcmod.predefined.mkCrcFun("crc-ccitt-false")
-```
-Or by using the crcmod method:
+The CRC used in the HA protocol frame must use the standard CRC16 crc-ccitt-false. Parameters of this CRC are:
+
+| Parameter   | Value     |
+| ----------- | --------- |
+| Polynom     | `0x1021`  |
+| Init        | `0xFFFF`  |
+| Refin       | `false`   |
+| Refout      | `false`   |
+| Xorout      | `0x0000`  |
+| Check       | `0x29B1`  |
+
+Using the crcmod python library, it can be instanciated using the following call:
 ```
 crc16 = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0xFFFF, xorOut=0x0000)
+```
+Or using its predefined counterpart:
+```
+crc16 = crcmod.predefined.mkCrcFun("crc-ccitt-false")
 ```
 
 #### [REQ_1050] HA protocol transfer machanism
