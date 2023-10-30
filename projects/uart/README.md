@@ -45,9 +45,9 @@ SLIP flags:
 | `0xDC`      | ESC_END       | Transposed Frame End    |
 | `0xDD`      | ESC_ESC       | Transposed Frame Escape |
 
-#### [REQ_1030] USB custom frame
+#### [REQ_1030] USB HA protocol
 
-The product **must** use a custom frame protocol. The frames are composed of:
+The product **must** use a custom frame protocol named HA protocol. The frames are composed of:
 
 <img src="img/data_frame.jpg" alt="Data frame" title="Data frame">
 
@@ -55,9 +55,9 @@ The product **must** use a custom frame protocol. The frames are composed of:
 - Data
 - a 16 bits CRC
 
-#### [REQ_1040] Custom frame CRC
+#### [REQ_1040] HA protocol CRC
 
-The CRC used in USB custom frame **must** be `crc-ccit-false`. It can be implemented in two different ways. By using the predefined:
+The CRC used in USB HA protocol **must** be `crc-ccit-false`. It can be implemented in two different ways. By using the predefined:
 ```
 crc16 = crcmod.predefined.mkCrcFun("crc-ccitt-false")
 ```
@@ -66,7 +66,7 @@ Or by using the crcmod method:
 crc16 = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0xFFFF, xorOut=0x0000)
 ```
 
-#### [REQ_1050] Custom frame transfer machanism
+#### [REQ_1050] HA protocol transfer machanism
 
 There **must** be two possible transfer mechanisms. For each, there can be only one request at a time before receiving an answer.
 - Standard request: the transfer is initiated by the host and wait for an answer from the host adapter
