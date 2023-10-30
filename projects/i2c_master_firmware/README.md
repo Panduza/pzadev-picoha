@@ -1,17 +1,26 @@
-# Name of the interface
+# I2C Master
 
 - Directory *src* to store the code
 - Directory *examples* to store python usages
 
-## Requirements
-
 ### SECTION 0: Pins Configuration
 
-- **Pin 21**: I2C0 SDA
-- **Pin 22**: I2C0 SCL
-- **Pin 23**: GND
+
+- ![Screenshot](pico_pinout_i2c.png)
+
+| Pin Numbers | I2C communication lines |
+| ---------   | --------- |
+| **Pin 21**  | I2C0 SDA   |
+| **Pin 22**  | I2C0 SCL   |
+| **Pin 23**  | GND   |
+
+
+## Requirements
+
 
 ### SECTION 1: USB Interface & Protocol
+
+- ![Screenshot](schema_picoha_protocole.png)
 
 #### [REQ_1000] USB IDs
 
@@ -38,15 +47,17 @@
 - Request code => 0x3B00
 - The frame **must** containe the slave address
 
+- ![Screenshot](frame.png)
+
 #### [REQ_5000] Read data
 
-The product **must** allow the user to easily read a message to I2C slave
-Request code => 0x3B01
-The frame **must** containe the slave address
+- The product **must** allow the user to easily read a message to I2C slave
+- Request code => 0x3B01
+- The frame **must** containe the slave address
 
 - ![Screenshot](frame.png)
 
 #### [REQ_6000] I2C bus requirements
 
-The product **must** take care of all I2C bus requirements such as START/Restart/STOP sequencing and handle the acknowledge cycles
+- The product **must** take care of all I2C bus requirements such as START/Restart/STOP sequencing and handle the acknowledge cycles
 
