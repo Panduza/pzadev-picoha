@@ -26,6 +26,10 @@ The serial number of the device **must** be XXXX.
 
 We chose to use the free shared USB VID/PID instead of the Raspberry Pi VID/PID to assure not to have the product been mistaken with another Raspberry Pi product.
 
+The guidelines to use free USB IDs for shared use are described in the following document: https://github.com/obdev/v-usb/blob/master/usbdrv/USB-IDs-for-free.txt
+
+The guidelines to use Raspberry Pi USB product ID are described in the following document: https://github.com/raspberrypi/usb-pid
+
 #### [REQ_1010] USB device class
 
 The product **must** use USB CDC as its device class.
@@ -122,43 +126,43 @@ There **must** be two possible transfer mechanisms. For each, there can be only 
 
 #### [REQ_2000] Ping
 
-The product **must** answer when the ping request `0x0000` is received with the good answer `0xFFFF`.
+The product **must** answer the `Good` (`0xFFFF`) answer when the `Ping` (`0x0000`) request is received.
 
 #### [REQ_2010] Interface type
 
-The product **must** answer when the ItfType request `0x0001` is received with the ItfTypeResp answer `0xFEFE`. The data returned must be `"picoha-uart"`.
+The product **must** answer the `ItfTypeResp` (`0xFEFE`) answer when the `ItfType` (`0x0001`) request is received. The data returned must be `"picoha-uart"`.
 
 #### [REQ_2020] Version
 
-The product **must** answer when the Version request `0x0002` is received with the VersionResp answer `0xFEFF`. The data returned must be version of the firmware loaded on the product.
+The product **must** answer the `VersionResp` (`0xFEFF`) answer when the `Version` (`0x0002`) request is received. The data returned must be version of the firmware loaded on the product.
 
 #### [REQ_2030] ID
 
-The product **must** answer when the IdGet request `0x0003` is received with the IdResp answer `0xFEFD`. The data returned must be unique board ID of the product.
+The product **must** answer the `IdResp` (`0xFEFD`) answer when the `IdGet` (`0x0003`) request is received. The data returned must be unique board ID of the product.
 
 #### [REQ_2040] Good
 
-The product **must** answer the code `0xFFFF` when no error has been encountered.
+The product **must** answer the `Good` (`0xFFFF`) code when no error has been encountered and the request has no specific answer.
 
 #### [REQ_2050] Generic error
 
-The product **must** answer the code `0xFFFE` when a generic error is encountered.
+The product **must** answer the `ErrGeneric` (`0xFFFE`) code when an error not linked to a preexisting error codde is encountered.
 
 #### [REQ_2060] CRC error
 
-The product **must** answer the code `0xFFFD` when a CRC error is encountered.
+The product **must** answer the `ErrCRC` (`0xFFFD`) code when the CRC of a received request is invalid.
 
 #### [REQ_2070] Unknown code error
 
-The product **must** answer the code `0xFFFC` when an unknown code error is encountered.
+The product **must** answer the `ErrUnknownCode` (`0xFFFC`) code when the request code received is unknown.
 
 #### [REQ_2080] Invalid arguments error
 
-The product **must** answer the code `0xFFFB` when an invalid arguments error is encountered.
+The product **must** answer the `ErrInvalidArgs` (`0xFFFB`) code when a request is received with the wrong arguments.
 
-#### [REQ_2090] Busy error
+#### [REQ_2090] Busy
 
-The product **must** answer the code `0xFFFA` when a busy error is encountered.
+The product **must** answer the `ErrBusy` (`0xFFFA`) code when an operation is still in progress and the product is busy.
 
 ### SECTION 3: UART Requests
 
@@ -171,16 +175,17 @@ The product **must** answer the code `0xFFFA` when a busy error is encountered.
 
 ***UART requests***
 
-| Code        | Function  |
-| ----------- | --------- |
-| `0x1000`    | DataTX    |
-| `0x1001`    | DataRXGet |
-| `0x1002`    | BaudSet   |
-| `0x1003`    | BaudGet   |
-| `0x1004`    | SetParity |
-| `0x1005`    | SetStopBit|
-| `0x1006`    | SetDataSz |
-| `0x1007`    | StopCom   |
+| Code        | Function      |
+| ----------- | ------------- |
+| `0x1000`    | DataTX        |
+| `0x1001`    | DataRXGet     |
+| `0x1002`    | BaudSet       |
+| `0x1003`    | BaudGet       |
+| `0x1004`    | SetParity     |
+| `0x1005`    | SetStopBit    |
+| `0x1006`    | SetDataSz     |
+| `0x1007`    | HWFlowControl |
+| `0x1008`    | StopCom       |
 
 ***UART answers***
 
@@ -191,31 +196,35 @@ The product **must** answer the code `0xFFFA` when a busy error is encountered.
 
 #### [REQ_3000] Send data
 
-The product **must** send data to one other product using UART communication when the command `0x1000` is received.
+The product **must** send data to one other product using UART communication when the `DataTX` (`0x1000`) command is received.
 
 #### [REQ_3010] Receive data
 
-The product **must** receive data from one other product using UART communication when the command `0x1001` is received.
+The product **must** receive data from one other product using UART communication when the `DataRXGet` (`0x1001`) command is received.
 
 #### [REQ_3020] Write baud rate
 
-The product **must** provide a way to change the baudrate. The request code to set the baudrate is `0x1002`. The baud rate can be out of the standards baud rates used in UART.
+The product **must** provide a way to change the baudrate. The request code to set the baudrate is `BaudSet` (`0x1002`). The baud rate can be out of the standards baud rates used in UART.
 
 #### [REQ_3030] Read baud rate
 
-The product **must** provide a way to read the baudrate. The request code to read the baudrate is `0x1003`. The product must answer the baudrate value with the code `0xEFFE`.
+The product **must** provide a way to read the baudrate. The request code to read the baudrate is `BaudGet` (`0x1003`). The product must answer the baudrate value with the `Baud` (`0xEFFE`) code.
 
 #### [REQ_3040] Parity
 
-The product **must** configure the parity bit when the command `0x1004` is received. The parity bit can be set to 0 or 1 with the default value set to 0.
+The product **must** configure the parity bit when the `SetParity` (`0x1004`) command is received. The parity bit can be set to 0 or 1 with the default value set to 0.
 
 #### [REQ_3050] Stop bits
 
-The product **must** configure the stop bits when the command `0x1005` is received. The stop bit can be set to 1 or 2 with the default value set to 1.
+The product **must** configure the stop bits when the `SetStopBit` (`0x1005`) command is received. The stop bit can be set to 1 or 2 with the default value set to 1.
 
 #### [REQ_3060] Data size
 
-The product **must** configure the data size when the command `0x1006` is received. The data size can be set to 5, 6, 7, 8 or 9 with the default value set to 8.
+The product **must** configure the data size when the `SetDataSz` (`0x1006`) command is received. The data size can be set to 5, 6, 7, 8 or 9 with the default value set to 8.
+
+#### [REQ_3070] Hardware flow control
+
+The product **must** enable hardware flow control when the `HWFlowControl` (`0x1007`) command is received. The hardware flow control is disabled by default.
 
 ### SECTION 4: Features
 
@@ -223,22 +232,18 @@ The product **must** configure the data size when the command `0x1006` is receiv
 
 The product UART TX is connected to GP0 and the UART RX is connected to GP1.
 
-#### [REQ_4010] Hardware flow control
-
-The product **must** enable hardware flow control.
-
-#### [REQ_4020] Hardware flow control pinout
+#### [REQ_4010] Hardware flow control pinout
 
 The product CTS is connected to GP2 and the RTS is connected to GP3.
 
-#### [REQ_4030] PIO
+#### [REQ_4020] PIO
 
 The product **must** use the Programmable I/O of the Pi Pico board.
 
-#### [REQ_4040] Start of the program
+#### [REQ_4030] Start of the program
 
-The product **must** enable the UART communication at the start of the firmware using the default UART settings. The internal LED of the product **must** be turned on at the start of the firmware. The LED state **must** be inverted at each command received by the product during the execution of the firmware.
+The product **must** enable the UART communication at the start of the firmware using the default UART settings. The internal LED of the product **must** be turned on at the start of the firmware. The LED state **must** be toggled at each command received by the product during the execution of the firmware.
 
-#### [REQ_4050] UART stop
+#### [REQ_4040] UART stop
 
-The firmware **must** be able to stop the UART in the middle of a communication when the command `0x1007` is received.
+The firmware **must** be able to stop the UART in the middle of a communication when the `StopCom` (`0x1008`) command is received.
