@@ -185,7 +185,8 @@ The product **must** answer the `ErrBusy` (`0xFFFA`) code when an operation is s
 | `0x1005`    | SetStopBit    |
 | `0x1006`    | SetDataSz     |
 | `0x1007`    | HWFlowControl |
-| `0x1008`    | StopCom       |
+| `0x1008`    | ComErrStart   |
+| `0x1009`    | ComErrSize    |
 
 ***UART answers***
 
@@ -244,6 +245,14 @@ The product **must** use the Programmable I/O of the Pi Pico board.
 
 The product **must** enable the UART communication at the start of the firmware using the default UART settings. The internal LED of the product **must** be turned on at the start of the firmware. The LED state **must** be toggled at each command received by the product during the execution of the firmware.
 
-#### [REQ_4040] UART stop
+#### [REQ_4040] UART communication error start
 
-The firmware **must** be able to stop the UART in the middle of a communication when the `StopCom` (`0x1008`) command is received.
+The firmware **must** send data with corrupted start bit using UART communication when the `ComErrStart` (`0x1008`) command is received. The start bit must be 2 bits long.
+
+<img src="img/comErrStart.jpg" alt="ComErrStart" title="ComErrStart">
+
+#### [REQ_4050] UART communication error size
+
+The firmware **must** send data with corrupted size using UART communication when the `ComErrSize` (`0x1009`) command is received. The UART frame must stop after 5 bits of data.
+
+<img src="img/comErrSize.jpg" alt="ComErrSize" title="ComErrSize">
