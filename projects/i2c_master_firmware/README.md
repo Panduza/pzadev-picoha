@@ -154,6 +154,7 @@ The product must answer the ErrBusy ```0xFFFA``` code when an operation is still
 
 - The product **must** allow the user to write a message to I2C slave
 - Request code => ```0x3B00```
+- Response code => ```0xB300```
 - The frame **must** containe the slave address
 
 ![Screenshot](frame.png)
@@ -162,6 +163,7 @@ The product must answer the ErrBusy ```0xFFFA``` code when an operation is still
 
 - The product **must** allow the user to read a message to I2C slave
 - Request code => ```0x3B01```
+- Response code => ```0xB301```
 - The frame **must** containe the slave address
 
 ![Screenshot](frame.png)
@@ -169,6 +171,9 @@ The product must answer the ErrBusy ```0xFFFA``` code when an operation is still
 #### [REQ_3030] Write-Read Operation (Combined Write and Read)
 
 - The product **must** allow the user to combine write and read operations performed sequentially
+- Request code => ```0x3B02```
+- Response code => ```0xB302```
+- The frame **must** containe the slave address
 
 #### [REQ_3040] Start and Stop conditions
 
@@ -180,8 +185,16 @@ The product must answer the ErrBusy ```0xFFFA``` code when an operation is still
 
 #### [REQ_3060] Clock Speed Configuration
 
-- The product **must**  support different clock speeds or bit rates (100 Kbps, 400 Kbps, 1 Mbps) to accommodate various communication requirements.
+- The product **must**  support the configuration of clock speeds or bit rates (100 Kbps, 400 Kbps, 1 Mbps) to accommodate various communication requirements.
+- Request code => ```0x3B03```
+- Response code => ```0xB303```
 
 #### [REQ_3070] Error Handling
 
 - The product **must** handle error such as Acknowledge error and timeout handling (slave unresponsive)
+
+#### [REQ_3080] I2C STOP
+
+- The product **must** allow the user to stop the I2C communication at any time during communication
+- Request code => ```0x3B04```
+- Response code => ```0xB304```
