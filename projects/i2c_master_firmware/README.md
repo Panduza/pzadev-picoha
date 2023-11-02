@@ -175,6 +175,8 @@ The product must answer the ErrBusy ```0xFFFA``` code when an operation is still
 - Response code => ```0xB302```
 - The frame **must** containe the slave address
 
+![Screenshot](frame.png)
+
 #### [REQ_3040] Start and Stop conditions
 
 - The product **must** generate the **Start** and the **Stop** conditions in order begin and end a transaction
