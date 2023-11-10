@@ -358,4 +358,30 @@ impl<'a> ArgParser<'a> {
             None
         }
     }
+
+    pub fn consume_u32(&mut self) -> Option<u32> {
+        if self.idx < (self.buf.len()-3) {
+                let x = u32::from_be_bytes([self.buf[self.idx], self.buf[self.idx+1], self.buf[self.idx+2], self.buf[self.idx+3]]);
+                self.idx += 4;
+
+                Some(x)
+        }
+
+        else {
+            None
+        }
+    }
+
+    pub fn consume_vector_u8(&mut self) -> Option<Vec<u8, 64>> {
+        if self.idx < self.buf.len() {
+            let mut c: Vec<u8, 64> = Vec::new();
+            c.extend_from_slice(self.buf).unwrap();
+
+            Some(c)
+        }
+
+        else {
+            None
+        }
+    }
 }

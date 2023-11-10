@@ -24,13 +24,13 @@ impl HWFlowControlState {
             Self::Enable => 1,
         }
     }
-
+}
 //////////////////////////////////////
 
 #[derive(Debug)]
 pub enum Request {
-    DataTX(data),
-    DataRXGet(data),
+    DataTX(Vec::<u8, 64>),
+    DataRXGet,
     BaudSet(u32),
     BaudGet,
     SetParity(u8),
@@ -46,12 +46,18 @@ impl Request {
         match ff.code {
             // TODO
             ha::Code::DataTX => {
-                
+                let mut argp = ha::ArgParser::new(&ff.data.as_slice());
+
+                let tx_data = match argp.consume_vector_u8() {
+                    Some(x) => x,
+                    None    => {return Err(ha::MsgError::InvalidArg);}
+                };
+
+                Ok(Self::DataTX(tx_data))
             },
 
-            // TODO
             ha::Code::DataRXGet => {
-                
+                Ok(Self::DataRXGet)
             },
 
             ha::Code::BaudSet => {
@@ -66,7 +72,7 @@ impl Request {
             },
 
             ha::Code::BaudGet => {
-                Ok(Self::BaudGet())
+                Ok(Self::BaudGet)
             }
 
             ha::Code::SetParity => {
@@ -117,11 +123,11 @@ impl Request {
             }
 
             ha::Code::ComErrStart => {
-                Ok(Self::ComErrStart())
+                Ok(Self::ComErrStart)
             }
 
             ha::Code::ComErrSize => {
-                Ok(Self::ComErrSize())
+                Ok(Self::ComErrSize)
             }
 
             _ => Err(ha::MsgError::NotARequest(ff.code))
@@ -135,12 +141,20 @@ impl Request {
 pub enum Response<'a> {
     Good,
 
-    DataRX(u8, GpioValue),
+    DataRX(Vec::<u8, 64>),
     Baud(u32),
 
     ErrInvalidArgs,
     ErrGeneric(&'a str),
 }
+
+//pub fn u32_to_vecu8(input: &u32) -> Vec<u8, 64> {
+    //let mut bytes = Vec::<u8, 64>::new();
+
+    //bytes.extend(input.to_be_bytes());
+
+    //bytes
+//}
 
 // TODO // Configure framesize at crate level?
 impl<'a> Response<'a> {
@@ -153,16 +167,18 @@ impl<'a> Response<'a> {
                 }
             }
             // TODO
-            Self::DataRX(data) => {
+            Self::DataRX(rx_data) => {
                 ha::MsgFrame {
-                    
+                    code: ha::Code::DataRX,
+                    data: *rx_data,
                 }
             }
 
             Self::Baud(baud_value) => {
                 ha::MsgFrame {
                     code: ha::Code::Baud,
-                    data: Vec::from_slice(baud_value.to_u8()).unwrap()
+                    //data: u32_to_vecu8(baud_value)
+                    data: Vec::from_slice(&(baud_value.to_be_bytes())).unwrap()
                 }
             }
             
