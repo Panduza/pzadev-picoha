@@ -44,7 +44,6 @@ pub enum Request {
 impl Request {
     pub fn consume_frame(ff: ha::MsgFrame) -> Result<Self, ha::MsgError> {
         match ff.code {
-            // TODO
             ha::Code::DataTX => {
                 let mut argp = ha::ArgParser::new(&ff.data.as_slice());
 
@@ -166,11 +165,10 @@ impl<'a> Response<'a> {
                     data: Vec::new(),
                 }
             }
-            // TODO
             Self::DataRX(rx_data) => {
                 ha::MsgFrame {
                     code: ha::Code::DataRX,
-                    data: *rx_data,
+                    data: Vec::from_slice(rx_data.as_slice()).unwrap(),
                 }
             }
 
