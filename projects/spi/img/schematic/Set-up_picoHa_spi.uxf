@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <help_text/>
+  <zoom_level>14</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>644</x>
+      <y>196</y>
+      <w>364</w>
+      <h>308</h>
+    </coordinates>
+    <panel_attributes>User PC
+bg=#9B59B6
+transparency=50
+layer=-1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1302</x>
+      <y>196</y>
+      <w>476</w>
+      <h>378</h>
+    </coordinates>
+    <panel_attributes>Linux machine
+layer=-1
+bg=#2ECC71
+transparency=50
+
+group=group-2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLHierarchy</id>
+    <coordinates>
+      <x>1372</x>
+      <y>308</y>
+      <w>336</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>type=Package
+picoHa
+
+group=group-2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>924</x>
+      <y>322</y>
+      <w>476</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+SSH </panel_attributes>
+    <additional_attributes>10.0;20.0;320.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>714</x>
+      <y>294</y>
+      <w>224</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>VScode
+valign=center
+bg=#9B59B6
+transparency=0
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1386</x>
+      <y>532</y>
+      <w>140</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>USB
+valign=center
+bg=#2ECC71
+transparency=0
+group=group-2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1288</x>
+      <y>672</y>
+      <w>126</w>
+      <h>154</h>
+    </coordinates>
+    <panel_attributes>PicoProbe
+valign=center
+bg=#E67E22
+transparency=0</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>952</x>
+      <y>602</y>
+      <w>154</w>
+      <h>406</h>
+    </coordinates>
+    <panel_attributes>PicoHA
+layer=-1
+bg=#3498DB
+transparency=50</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1022</x>
+      <y>672</y>
+      <w>112</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>JTAG
+valign=center
+bg=#3498DB
+transparency=0</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1022</x>
+      <y>770</y>
+      <w>112</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>UART0
+valign=center
+bg=#3498DB
+transparency=0</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1120</x>
+      <y>686</y>
+      <w>196</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1400</x>
+      <y>574</y>
+      <w>84</w>
+      <h>154</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;90.0;40.0;90.0;40.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1554</x>
+      <y>532</y>
+      <w>126</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>USB
+valign=center
+bg=#2ECC71
+transparency=0
+group=group-2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1022</x>
+      <y>868</y>
+      <w>112</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>USB
+valign=center
+bg=#3498DB
+transparency=0</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1120</x>
+      <y>784</y>
+      <w>196</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;120.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1120</x>
+      <y>574</y>
+      <w>532</w>
+      <h>350</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;230.0;360.0;230.0;360.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>686</x>
+      <y>658</y>
+      <w>126</w>
+      <h>252</h>
+    </coordinates>
+    <panel_attributes>Logic
+Analyser
+valign=center
+bg=#E67E22
+transparency=0</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>980</x>
+      <y>980</y>
+      <w>112</w>
+      <h>56</h>
+    </coordinates>
+    <panel_attributes>SPI0
+valign=center
+bg=#3498DB
+transparency=0</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>742</x>
+      <y>490</y>
+      <w>42</w>
+      <h>196</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>742</x>
+      <y>896</y>
+      <w>322</w>
+      <h>210</h>
+    </coordinates>
+    <panel_attributes>lt=-</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0;210.0;130.0;210.0;100.0</additional_attributes>
+  </element>
+</diagram>
