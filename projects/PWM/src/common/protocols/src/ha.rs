@@ -126,9 +126,6 @@ impl Code {
             Self::GpioDir => 0xFDFE,
 
             // Response codes for PWM
-            Self::GpioValue => 0xFDFF,
-            Self::GpioDir => 0xFDFE,
-
             Self::Frequency => 0xFCFF,
             Self::DutyCycle => 0xFCFE,
             Self::ErrFrequency => 0xFCFD,
@@ -232,7 +229,7 @@ impl ItfType {
         match x {
             0x00 => Some(Self::Dummy),
             0x01 => Some(Self::Gpio),
-            0x02 => Some(Self::Gpio),
+            0x02 => Some(Self::Pwm),
             _ => None,
         }
     }
