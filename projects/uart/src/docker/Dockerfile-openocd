@@ -1,0 +1,20 @@
+FROM alpine:3.18
+RUN apk update
+RUN apk add git libtool build-base pkgconfig automake autoconf make gawk
+
+RUN apk add \
+	libusb libusb-dev \
+	capstone capstone-dev \
+	hidapi hidapi-dev \
+	libftdi1 libftdi1-dev \
+	libgpiod libgpiod-dev \
+	libjaylink libjaylink-dev
+
+WORKDIR /src
+RUN git clone https://github.com/openocd-org/openocd
+
+WORKDIR /src/openocd
+RUN ./bootstrap
+RUN ./configure --prefix=/usr
+RUN make -j 4
+RUN make install
