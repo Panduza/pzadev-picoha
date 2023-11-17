@@ -52,7 +52,22 @@ use crate::board::Board;
 //    }
 //}
 
-/*pub struct MyPlatformSleep {
+#[derive(Debug)]
+pub enum PlatformError {
+    InitError,
+}
+
+pub trait PlatformSleep {
+    fn sleep_ms(&mut self, delay_ms: u32);
+}
+
+pub trait PlatformData {
+    //fn get_led  (&mut self) -> &mut dyn PlatformLed;
+    fn get_sleep(&mut self) -> &mut dyn PlatformSleep;
+    //fn get_pins (&mut self) -> &mut dyn GpioCtrl;
+}
+
+pub struct MyPlatformSleep {
     delay: cortex_m::delay::Delay,
 }
 
@@ -60,11 +75,6 @@ impl PlatformSleep for MyPlatformSleep {
     fn sleep_ms(&mut self, delay_ms: u32) {
         self.delay.delay_ms(delay_ms);
     }
-}*/
-
-#[derive(Debug)]
-pub enum PlatformError {
-    InitError,
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -111,13 +121,13 @@ impl<'a> PlatformUsb<'a> {
 //////////////////////////////////////////////////////////////////////////
 
 pub struct Platform<'a> {
-    //pub sleep: MyPlatformSleep,
+    pub sleep: MyPlatformSleep,
     //pub pins: PlatformPins,
 
     pub usb: PlatformUsb<'a>,
 }
 
-/*impl<'a> PlatformData for Platform<'a> {
+impl<'a> PlatformData for Platform<'a> {
     //fn get_led(&mut self) -> &mut dyn PlatformLed {
     //    &mut self.led
     //}
@@ -129,7 +139,7 @@ pub struct Platform<'a> {
     //fn get_pins(&mut self) -> &mut dyn GpioCtrl {
         //&mut self.pins
     //}
-}*/
+}
 
 impl<'a> Platform<'a> {
     pub fn init(
@@ -145,7 +155,7 @@ impl<'a> Platform<'a> {
         //let pins = PlatformPins::new(pins);
 
         Ok(Self {
-            //sleep: MyPlatformSleep { delay: delay },
+            sleep: MyPlatformSleep { delay: delay },
             //pins: pins,
             usb: usb,
         })
