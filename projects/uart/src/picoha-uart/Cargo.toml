@@ -24,6 +24,7 @@ panic-probe   = { version="0.3.1"}
 
 usb-device    = "0.2.9"
 usbd-serial   = "0.1.1"
+panic-halt = "0.2.0"
 
 
 # -- Cortex-m support crates
