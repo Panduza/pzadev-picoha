@@ -11,14 +11,6 @@ use rp2040_hal::clocks::Clock;
 
 use rp2040_hal::pwm::{CountFallingEdge, CountRisingEdge, InputHighRunning};
 
-// UART related types
-use hal::uart::{DataBits, StopBits, UartConfig};
-
-// Some traits we need
-use core::fmt::Write;
-use fugit::RateExtU32;
-use hal::uart::UartPeripheral;
-
 // A shorter alias for the Peripheral Access Crate, which provides low-level
 // register access
 use hal::pac;
@@ -26,6 +18,8 @@ use hal::pac;
 /// External high-speed crystal on the Raspberry Pi Pico board is 12 MHz. Adjust
 /// if your board has a different frequency
 const XTAL_FREQ_HZ: u32 = 12_000_000u32;
+
+const FSYS: u32 = 125_000_000u32;
 
 pub struct Pwm {
     pub pwm_slices: hal::pwm::Slices,
@@ -88,6 +82,135 @@ impl Pwm {
             resets: pac.RESETS,
         }
     }
+
+    pub fn set_freq(&mut self, fpwm: f32) -> (f32, f32, u16, u16, f32, u8, u8) {
+        let period_wanted = (FSYS as f32) / fpwm;
+        // let top = self.pwm_slices.pwm5.get_top();
+        let precision = 0.1f32;
+        let mut top = (period_wanted / 2.0).clamp(0.0, u16::MAX as f32);
+
+        self.pwm_slices.pwm5.set_ph_correct();
+        self.pwm_slices.pwm5.set_div_int(1);
+        self.pwm_slices.pwm5.set_div_frac(0);
+
+        let csr_ph_correct = 1u8;
+        let div_int = 1u8;
+        let div_frac = 0u8;
+
+        let period = (top as f32 + 1.0)
+            * (csr_ph_correct as f32 + 1.0)
+            * (div_int as f32 + div_frac as f32 / 16.0);
+
+        let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) =
+            binary_search(period_wanted, period, top as u16, precision);
+
+        (
+            period_wanted,
+            period,
+            top,
+            iterations,
+            real_fpwm,
+            div_frac,
+            div_int,
+        )
+    }
 }
+
+fn binary_search(
+    period_wanted: f32,
+    mut period: f32,
+    mut top: u16,
+    precision: f32,
+) -> (f32, f32, u16, u16, f32, u8, u8) {
+    let mut csr_ph_correct = 1u8;
+    let mut div_int = 1u8;
+    let mut div_frac = 0u8;
+
+    // Iterative adjustment to achieve the desired frequency
+    let mut iterations = 0;
+    let max_iterations = 20; // Set an upper limit on iterations
+
+    let mut lower_bound_div_frac = 0;
+    let mut upper_bound_div_frac = u8::MAX;
+
+    let mut lower_bound_div_int = 1;
+    let mut upper_bound_div_int = u8::MAX;
+
+    let fpwm_wanted = (FSYS as f32) / period_wanted;
+    let mut real_fpwm = 0.0;
+
+    // Iterative adjustment to achieve the desired frequency
+    while iterations < max_iterations {
+        period = (top as f32 + 1.0)
+            * (csr_ph_correct as f32 + 1.0)
+            * (div_int as f32 + (div_frac as f32 / 16.0));
+
+        real_fpwm = (FSYS as f32) / period;
+        // Check if the adjusted period is within the desired range
+        if (real_fpwm == fpwm_wanted)
+            || fpwm_wanted >= real_fpwm - precision && fpwm_wanted <= real_fpwm + precision
+        {
+            break;
+        }
+        // Binary search for a faster adjustment
+        if period_wanted < period {
+            upper_bound_div_frac = div_frac;
+        } else {
+            lower_bound_div_frac = div_frac;
+        }
+
+        div_frac = (lower_bound_div_frac + upper_bound_div_frac) / 2;
+
+        // if period_wanted < period {
+        //     upper_bound_div_int = div_int;
+        // } else {
+        //     lower_bound_div_int = div_int;
+        // }
+
+        // div_int = (lower_bound_div_int + upper_bound_div_int) / 2;
+
+        iterations += 1;
+    }
+    return (
+        period_wanted,
+        period,
+        top,
+        iterations,
+        real_fpwm,
+        div_frac,
+        div_int,
+    );
+}
+
+// pub enum PwmSlice {
+//     pwm0 = &mut self.pwm_slices.pwm0,
+//     pwm1 = &mut self.pwm_slices.pwm1,
+// }
+
+// trait PwmConfig {
+//     fn set_freq(pwm_channel: u8, frequency: f32);
+// }
+
+// trait SelectPwm {
+//     fn pwm_number(&mut self, number: u8);
+// }
+
+// impl SelectPwm for Pwm {
+//     fn pwm_number(&mut self, number: u8) {
+//         match number {
+//             0 => self.pwm_slices.pwm0,
+//             1 => self.pwm_slices.pwm1,
+//             2 => self.pwm_slices.pwm2,
+//             3 => self.pwm_slices.pwm3,
+//             4 => self.pwm_slices.pwm4,
+//             5 => self.pwm_slices.pwm5,
+//             6 => self.pwm_slices.pwm6,
+//             7 => self.pwm_slices.pwm7,
+//             _ => None {
+//                 // Traitement par défaut ou erreur si nécessaire
+//             },
+//         }
+//     }
+// }
 
 // End of file
