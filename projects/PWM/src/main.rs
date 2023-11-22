@@ -1,8 +1,12 @@
 #![no_std]
 #![no_main]
 
-mod pwm_functions;
-use pwm_functions::Pwm;
+mod board;
+mod platform;
+
+use board::Board;
+use hal::pwm::{AnySlice, FreeRunning, A};
+use platform::{Pwm_Channel_A, Pwm_Channel_B};
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
@@ -42,16 +46,7 @@ pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
 
 fn main() -> ! {
     // Init Pwm
-    let mut pwm = Pwm::init();
-
-    let result = pwm.set_freq(1000.3);
-    let period_wanted = result.0;
-    let period = result.1;
-    let top: u16 = result.2;
-    let iteration: u16 = result.3;
-    let real_fpwm = result.4;
-    let div_frac = result.5;
-    let div_int = result.6;
+    let mut pwm = Board::init();
 
     // Configure UART
     let uart_pins = (
@@ -67,6 +62,27 @@ fn main() -> ! {
         )
         .unwrap();
 
+    ///////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+
+    let mut pwm_5_a = Pwm_Channel_A::new(pwm.pwm_slices.pwm5, pwm.pins.gpio10);
+    let result = pwm_5_a.set_freq(12000.9);
+    pwm_5_a.set_duty(2000);
+    pwm_5_a.enable();
+
+    // let mut pwm_1_b = Pwm_Channel_B::new(pwm.pwm_slices.pwm1, pwm.pins.gpio19);
+    // let result = pwm_1_b.set_freq(22000.9);
+    // pwm_1_b.set_duty(2000);
+    // pwm_1_b.enable();
+
+    let period_wanted = result.0;
+    let period = result.1;
+    let top: u16 = result.2;
+    let iteration: u16 = result.3;
+    let real_fpwm = result.4;
+    let div_frac = result.5;
+    let div_int = result.6;
+
     writeln!(uart, "period_wanted : {period_wanted}\r").unwrap();
     writeln!(uart, "period : {period}\r").unwrap();
     writeln!(uart, "top : {top}\r").unwrap();
@@ -75,32 +91,44 @@ fn main() -> ! {
     writeln!(uart, "div_frac : {div_frac}\r").unwrap();
     writeln!(uart, "div_int : {div_int}\r").unwrap();
 
-    uart.write_full_blocking(b"test end \r\n");
+    // let system_frequency = pwm.clocks.system_clock.freq();
+    // writeln!(uart, "system_frequency : {system_frequency}\r").unwrap();
 
-    let pwm5 = &mut pwm.pwm_slices.pwm5;
+    // uart.write_full_blocking(b"test end \r\n");
 
-    let mut pwm1 = &mut pwm.pwm_slices.pwm1.into_mode::<InputHighRunning>();
-    let _ = &mut pwm1.channel_b.input_from(pwm.pins.gpio19);
+    // let pwm2 = &mut pwm.pwm_slices.pwm2;
 
-    pwm1.enable();
+    // let pwm1 = &mut pwm.pwm_slices.pwm1.into_mode::<CountRisingEdge>();
+    // let _ = &mut pwm1.channel_b.input_from(pwm.pins.gpio19);
 
-    pwm5.set_ph_correct();
-    pwm5.set_top(top);
-    pwm5.set_div_frac(div_frac);
-    pwm5.set_div_int(div_int);
-    pwm5.enable();
+    // pwm1.set_ph_correct();
+    // pwm1.enable();
 
-    let mut channel_a = &mut pwm5.channel_a;
-    let mut channel_b = &mut pwm5.channel_b;
-    channel_a.output_to(pwm.pins.gpio10);
-    channel_b.output_to(pwm.pins.gpio11);
+    // pwm2.clr_ph_correct();
+    // pwm2.enable();
 
-    channel_a.set_duty(top / 10);
-    channel_b.set_duty(top / 10);
+    // let start_time = pwm2.get_counter();
+    // let mut last_rising_edge = pwm1.get_counter();
 
     loop {
-        let counter = pwm1.get_counter();
-        writeln!(uart, "counter : {counter}\r").unwrap();
+        // Wait until a rising edge occurs
+        // while pwm1.get_counter() == last_rising_edge {}
+
+        // // Capture the current rising edge time
+        // let current_rising_edge = pwm1.get_counter();
+
+        // // Calculate time period between consecutive rising edges
+        // let time_period = current_rising_edge - last_rising_edge;
+
+        // // Calculate frequency
+        // let frequency = 125000000.0 / (time_period as f32);
+
+        // let counter = pwm2.get_counter();
+
+        // // let mut freq = 125000000.0 / (counter) as f32 * 2.0;
+        // // writeln!(uart, "counter : {counter}\r").unwrap();
+        // writeln!(uart, "time_period : {time_period}\r").unwrap();
+        // writeln!(uart, "frequency : {frequency}\r").unwrap();
     }
 
     // let pwm5 = &mut pwm.pwm_slices.pwm5;
