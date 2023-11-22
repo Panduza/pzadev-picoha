@@ -3,9 +3,11 @@
 
 mod board;
 mod platform;
+mod app;
 
 use board::Board;
 use platform::platform_impl::Platform;
+use app::App;
 
 use rp_pico as bsp;
 use bsp::entry;
@@ -31,8 +33,8 @@ fn main() -> ! {
 
     //platform.pins.init().unwrap();
 
-    //let mut app = App::new();
-    //app.init(&mut platform);
+    let mut app = App::new();
+    app.init(&mut platform);
 
     // Encoder/Decoder for commands
     let mut encoder = Encoder::<64>::new();
@@ -50,16 +52,53 @@ fn main() -> ! {
                 Ok(0)  => {},
 
                 Ok(count) => {
-                    // Send back to the host
-                    let mut wr_ptr = &buf[..count];
-                    while !wr_ptr.is_empty() {
-                        match platform.usb.serial.write(wr_ptr) {
-                            Ok(len) => wr_ptr = &wr_ptr[len..],
-                            // On error, just drop unwritten data.
-                            // One possible error is Err(WouldBlock), meaning the USB
-                            // write buffer is full.
-                            Err(_) => break,
-                        };
+                    let mut idx = 0;
+                    while idx < count {
+                        match decoder.feed(&buf[idx..(count)]) {
+                            Err(e) => {
+                                idx += e.pos;
+                                decoder.reset();
+                            }
+
+                            Ok((nbytes,is_end)) => {
+                                idx += nbytes;
+
+                                if is_end {
+                                    state = !state;
+
+                                    fn _process_slice(app: &mut App, platform: &mut Platform, slice: &[u8]) -> Result<ha::MsgFrame, ha::MsgError> {
+                                        let req_frame = ha::MsgFrame::from_slice(slice)?;
+                                        app.process_frame(platform, req_frame)
+                                    }
+
+                                    // Get and process incoming slice
+                                    let slice = decoder.slice();
+                                    let response_frame = match _process_slice(&mut app, &mut platform, &slice) {
+                                        Ok(frame) => frame,
+                                        Err(exc)  => exc.to_frame(),
+                                    };
+
+                                    // Try encode response frame
+                                    fn _build_response<const BUFLEN: usize>(ff: &ha::MsgFrame, encoder: &mut Encoder<BUFLEN>) -> Result<(), SlipError> {
+                                        encoder.feed(ff.code.to_u16().to_be_bytes().as_slice())?;
+                                        encoder.feed(ff.data.as_slice())?;
+                                        encoder.feed(ff.crc().to_be_bytes().as_slice())?;
+                                        encoder.finish()?;
+
+                                        Ok(())
+                                    }
+
+                                    match _build_response(&response_frame, &mut encoder) {
+                                        Ok(_) => {platform.usb.serial.write(encoder.slice()).ok();}
+                                        Err(_) => {}
+                                    }
+
+                                    // Reset encoder and decoder
+                                    decoder.reset();
+                                    encoder.reset();
+                                }
+                            }
+                        }
                     }
                 }
             }
