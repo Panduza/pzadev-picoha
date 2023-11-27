@@ -26,8 +26,7 @@ use bsp::hal::{
     watchdog::Watchdog,
     gpio,
     spi,
-    usb,
-    Timer
+    usb
 };
 
 // USB Device support
@@ -54,8 +53,6 @@ fn main() -> ! {
     )
     .ok()
     .unwrap();
-
-    let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
 
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
@@ -111,12 +108,6 @@ fn main() -> ! {
 
     let mut said_hello = false;
     loop {
-        // A welcome message at the beginning
-        if !said_hello && timer.get_counter().ticks() >= 2_000_000 {
-            said_hello = true;
-            let _ = serial.write(b"Hello, World!\r\n");
-        }
-
         // Check for new data
         if usb_dev.poll(&mut [&mut serial]) {
             let mut buf = [0u8; 64];
@@ -128,20 +119,25 @@ fn main() -> ! {
                     // Do nothing
                 }
                 Ok(count) => {
-                    buf.iter_mut().take(count).for_each(|b| {
-                        b.make_ascii_uppercase();
-                    });
+                    // send received on SPI
+                    // let mut wr_ptr = &buf[..count];
+                    spi_cs.set_low().unwrap();
+                    let _transfer_success = spi.transfer(&mut buf[..count]);
+                    spi_cs.set_high().unwrap();
+                    // buf.iter_mut().take(count).for_each(|b| {
+                    //     b.make_ascii_uppercase();
+                    // });
                     // Send back to the host
-                    let mut wr_ptr = &buf[..count];
-                    while !wr_ptr.is_empty() {
-                        match serial.write(wr_ptr) {
-                            Ok(len) => wr_ptr = &wr_ptr[len..],
-                            // On error, just drop unwritten data.
-                            // One possible error is Err(WouldBlock), meaning the USB
-                            // write buffer is full.
-                            Err(_) => break,
-                        };
-                    }
+                    // let mut wr_ptr = &buf[..count];
+                    // while !wr_ptr.is_empty() {
+                    //     match serial.write(wr_ptr) {
+                    //         Ok(len) => wr_ptr = &wr_ptr[len..],
+                    //         // On error, just drop unwritten data.
+                    //         // One possible error is Err(WouldBlock), meaning the USB
+                    //         // write buffer is full.
+                    //         Err(_) => break,
+                    //     };
+                    // }
                 }
             }
         }
