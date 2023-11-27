@@ -26,7 +26,14 @@ use bsp::hal::{
     watchdog::Watchdog,
     gpio,
     spi,
+    usb,
+    Timer
 };
+
+// USB Device support
+use usb_device::{class_prelude::*, prelude::*};
+// USB Communications Class Device support
+use usbd_serial::SerialPort;
 
 #[entry]
 fn main() -> ! {
@@ -36,10 +43,8 @@ fn main() -> ! {
     let mut watchdog = Watchdog::new(pac.WATCHDOG);
     let sio = Sio::new(pac.SIO);
 
-    // External high-speed crystal on the pico board is 12Mhz
-    let external_xtal_freq_hz = 12_000_000u32;
     let clocks = init_clocks_and_plls(
-        external_xtal_freq_hz,
+        rp_pico::XOSC_CRYSTAL_FREQ,
         pac.XOSC,
         pac.CLOCKS,
         pac.PLL_SYS,
@@ -50,6 +55,8 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
+    let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
+
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
     let pins = bsp::Pins::new(
@@ -58,6 +65,26 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
+
+    // Create the device-specific USB peripheral driver using rp-hal usb bus
+    let usb_bus = UsbBusAllocator::new(usb::UsbBus::new(
+        pac.USBCTRL_REGS,
+        pac.USBCTRL_DPRAM,
+        clocks.usb_clock,
+        true,
+        &mut pac.RESETS,
+    ));
+
+    // Set up the USB Communications Class Device driver
+    let mut serial = SerialPort::new(&usb_bus);
+
+    // Create a USB device with a fake VID and PID
+    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x05E1))
+        .manufacturer("panduza.io")
+        .product("picoha-spi")
+        .serial_number("XXXX")
+        .device_class(2) // from: https://www.usb.org/defined-class-codes
+        .build();
 
     // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
     // on-board LED, it might need to be changed.
@@ -82,17 +109,53 @@ fn main() -> ! {
     spi_cs.set_high().unwrap(); // set inactif
     delay.delay_ms(200);
 
+    let mut said_hello = false;
     loop {
-        spi_cs.set_low().unwrap();
-        let mut data: [u8; 2] = [0xd0, 0x0];
-        let transfer_success = spi.transfer(&mut data);
-        spi_cs.set_high().unwrap();
-        info!("on!");
-        led_pin.set_high().unwrap();
-        delay.delay_ms(500);
-        info!("off!");
-        led_pin.set_low().unwrap();
-        delay.delay_ms(500);
+        // A welcome message at the beginning
+        if !said_hello && timer.get_counter().ticks() >= 2_000_000 {
+            said_hello = true;
+            let _ = serial.write(b"Hello, World!\r\n");
+        }
+
+        // Check for new data
+        if usb_dev.poll(&mut [&mut serial]) {
+            let mut buf = [0u8; 64];
+            match serial.read(&mut buf) {
+                Err(_e) => {
+                    // Do nothing
+                }
+                Ok(0) => {
+                    // Do nothing
+                }
+                Ok(count) => {
+                    buf.iter_mut().take(count).for_each(|b| {
+                        b.make_ascii_uppercase();
+                    });
+                    // Send back to the host
+                    let mut wr_ptr = &buf[..count];
+                    while !wr_ptr.is_empty() {
+                        match serial.write(wr_ptr) {
+                            Ok(len) => wr_ptr = &wr_ptr[len..],
+                            // On error, just drop unwritten data.
+                            // One possible error is Err(WouldBlock), meaning the USB
+                            // write buffer is full.
+                            Err(_) => break,
+                        };
+                    }
+                }
+            }
+        }
+        
+        // spi_cs.set_low().unwrap();
+        // let mut data: [u8; 2] = [0xd0, 0x0];
+        // let _transfer_success = spi.transfer(&mut data);
+        // spi_cs.set_high().unwrap();
+        // info!("on!");
+        // led_pin.set_high().unwrap();
+        // delay.delay_ms(500);
+        // info!("off!");
+        // led_pin.set_low().unwrap();
+        // delay.delay_ms(500);
     }
 }
 
