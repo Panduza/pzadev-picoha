@@ -1,0 +1,28 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.245.2/containers/docker-existing-dockerfile
+{
+    "name": "rust-pi-devcontainer",
+    "context": "..",
+    "dockerFile": "../Dockerfile",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "mcu-debug.debug-tracker-vscode",
+                "ms-vscode.cpptools-extension-pack",
+                "augustocdias.tasks-shell-input",
+                "ms-vscode.cpptools-themes",
+                "marus25.cortex-debug",
+                "ms-vscode.vscode-serial-monitor",
+                "rust-lang.rust-analyzer"
+            ]
+        }
+    },
+    "remoteUser": "builder",
+
+    // set privileges rights to the container to allow it to access usb devices
+    // can be replaced by --device=/dev/... to specify the device wanted
+    "runArgs": ["--privileged"],
+
+    // mount the user .ssh folder to the container to allow git fetch/push
+    "mounts": [ "source=${localEnv:HOME}/.ssh,target=/home/builder/.ssh,type=bind" ]
+}
