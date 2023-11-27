@@ -1,40 +1,44 @@
-use hal::clocks::ClocksManager;
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 use panic_halt as _;
 
-// Alias for our HAL crate
-use rp2040_hal as hal;
-
 use embedded_hal::PwmPin;
 use rp2040_hal::clocks::Clock;
-use rp2040_hal::Timer;
 
 use rp2040_hal::pwm::{CountFallingEdge, CountRisingEdge, InputHighRunning};
 
 use rp2040_hal::{
     gpio::{AnyPin, PinId},
-    pwm::{self, ChannelId, Slice, SliceId, ValidPwmOutputPin, ValidSliceMode},
+    pwm::{
+        self, AnySlice, ChannelId, DynChannelId, Slice, SliceId, ValidPwmInputPin,
+        ValidPwmOutputPin, ValidSliceMode,
+    },
 };
 
 const FSYS: u32 = 125_000_000u32;
 
-pub struct Pwm_Channel_A<SliceANum: SliceId> {
-    sliceA: Slice<SliceANum, pwm::FreeRunning>,
+//////////////////////////////////////////////////////
+/// PWM Output for channel A
+//////////////////////////////////////////////////////
+pub struct PwmOutput_A<SliceNum: SliceId> {
+    slice: Slice<SliceNum, pwm::FreeRunning>,
 }
 
-impl<SliceANum: SliceId> Pwm_Channel_A<SliceANum> {
-    pub fn new<PinA: AnyPin>(mut sliceA: Slice<SliceANum, pwm::FreeRunning>, pin_a: PinA) -> Self
+impl<SliceNum: SliceId> PwmOutput_A<SliceNum> {
+    pub fn new<Pin: AnyPin>(mut slice: Slice<SliceNum, pwm::FreeRunning>, pin: Pin) -> Self
     where
-        PinA::Id: ValidPwmOutputPin<SliceANum, pwm::A>,
+        Pin::Id: ValidPwmOutputPin<SliceNum, pwm::A>,
     {
-        sliceA.channel_a.output_to(pin_a);
-
-        Self { sliceA: sliceA }
+        slice.channel_a.output_to(pin);
+        Self { slice }
     }
 
     pub fn enable(&mut self) {
-        self.sliceA.enable();
+        self.slice.enable();
+    }
+
+    pub fn disable(&mut self) {
+        self.slice.disable();
     }
 
     pub fn set_freq(&mut self, fpwm: f32) -> (f32, f32, u16, u16, f32, u8, u8) {
@@ -43,13 +47,16 @@ impl<SliceANum: SliceId> Pwm_Channel_A<SliceANum> {
         let precision = 0.1f32;
         let mut top = (period_wanted / 2.0).clamp(0.0, u16::MAX as f32);
 
-        self.sliceA.set_ph_correct();
-        self.sliceA.set_div_int(1);
-        self.sliceA.set_div_frac(0);
+        self.slice.set_ph_correct();
+        self.slice.set_div_int(1);
+        self.slice.set_div_frac(0);
 
         let csr_ph_correct = 1u8;
         let div_int = 1u8;
         let div_frac = 0u8;
+
+        // fPWM = fsys/period
+        // period = (TOP + 1)*(CSR_PH_CORRECT + 1)*(DIV_INT + (DIV_FRAC/16))
 
         let period = (top as f32 + 1.0)
             * (csr_ph_correct as f32 + 1.0)
@@ -58,9 +65,9 @@ impl<SliceANum: SliceId> Pwm_Channel_A<SliceANum> {
         let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) =
             binary_search(period_wanted, period, top as u16, precision);
 
-        self.sliceA.set_top(top);
-        self.sliceA.set_div_frac(div_frac);
-        self.sliceA.set_div_int(div_int);
+        self.slice.set_top(top);
+        self.slice.set_div_frac(div_frac);
+        self.slice.set_div_int(div_int);
 
         (
             period_wanted,
@@ -73,30 +80,39 @@ impl<SliceANum: SliceId> Pwm_Channel_A<SliceANum> {
         )
     }
 
-    pub fn set_duty(&mut self, duty: u16) {
-        self.sliceA.channel_a.set_duty(duty);
+    pub fn set_duty(&mut self, duty: f32) {
+        let value = self.slice.get_top() as f32 * duty / 100.0;
+        self.slice.channel_a.set_duty(value as u16);
+    }
+
+    pub fn get_duty(&mut self) -> f32 {
+        return (self.slice.channel_a.get_duty() as f32 / self.slice.get_top() as f32) * 100.0;
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-
-pub struct Pwm_Channel_B<SliceANum: SliceId> {
-    sliceB: Slice<SliceANum, pwm::FreeRunning>,
+//////////////////////////////////////////////////////
+/// PWM Output for channel B
+//////////////////////////////////////////////////////
+pub struct PwmOutput_B<SliceNum: SliceId> {
+    slice: Slice<SliceNum, pwm::FreeRunning>,
 }
 
-impl<SliceBNum: SliceId> Pwm_Channel_B<SliceBNum> {
-    pub fn new<PinB: AnyPin>(mut sliceB: Slice<SliceBNum, pwm::FreeRunning>, pin_b: PinB) -> Self
+impl<SliceNum: SliceId> PwmOutput_B<SliceNum> {
+    pub fn new<PinB: AnyPin>(mut slice: Slice<SliceNum, pwm::FreeRunning>, pin_b: PinB) -> Self
     where
-        PinB::Id: ValidPwmOutputPin<SliceBNum, pwm::B>,
+        PinB::Id: ValidPwmOutputPin<SliceNum, pwm::B>,
     {
-        sliceB.channel_b.output_to(pin_b);
+        slice.channel_b.output_to(pin_b);
 
-        Self { sliceB: sliceB }
+        Self { slice: slice }
     }
 
     pub fn enable(&mut self) {
-        self.sliceB.enable();
+        self.slice.enable();
+    }
+
+    pub fn disable(&mut self) {
+        self.slice.disable();
     }
 
     pub fn set_freq(&mut self, fpwm: f32) -> (f32, f32, u16, u16, f32, u8, u8) {
@@ -105,13 +121,16 @@ impl<SliceBNum: SliceId> Pwm_Channel_B<SliceBNum> {
         let precision = 0.1f32;
         let mut top = (period_wanted / 2.0).clamp(0.0, u16::MAX as f32);
 
-        self.sliceB.set_ph_correct();
-        self.sliceB.set_div_int(1);
-        self.sliceB.set_div_frac(0);
+        self.slice.set_ph_correct();
+        self.slice.set_div_int(1);
+        self.slice.set_div_frac(0);
 
         let csr_ph_correct = 1u8;
         let div_int = 1u8;
         let div_frac = 0u8;
+
+        // fPWM = fsys/period
+        // period = (TOP + 1)*(CSR_PH_CORRECT + 1)*(DIV_INT + (DIV_FRAC/16))
 
         let period = (top as f32 + 1.0)
             * (csr_ph_correct as f32 + 1.0)
@@ -120,9 +139,9 @@ impl<SliceBNum: SliceId> Pwm_Channel_B<SliceBNum> {
         let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) =
             binary_search(period_wanted, period, top as u16, precision);
 
-        self.sliceB.set_top(top);
-        self.sliceB.set_div_frac(div_frac);
-        self.sliceB.set_div_int(div_int);
+        self.slice.set_top(top);
+        self.slice.set_div_frac(div_frac);
+        self.slice.set_div_int(div_int);
 
         (
             period_wanted,
@@ -135,12 +154,97 @@ impl<SliceBNum: SliceId> Pwm_Channel_B<SliceBNum> {
         )
     }
 
-    pub fn set_duty(&mut self, duty: u16) {
-        self.sliceB.channel_b.set_duty(duty);
+    pub fn set_duty(&mut self, duty: f32) {
+        let value = self.slice.get_top() as f32 * duty / 100.0;
+        self.slice.channel_b.set_duty(value as u16);
+    }
+
+    pub fn get_duty(&mut self) -> f32 {
+        return (self.slice.channel_b.get_duty() as f32 / self.slice.get_top() as f32) * 100.0;
     }
 }
 
+// Define a generic trait for PWM output
+// pub trait PwmOutputTrait<SliceNum: SliceId> {
+//     fn new<Pin: AnyPin>(slice: Slice<SliceNum, pwm::FreeRunning>, pin: Pin) -> Self
+//     where
+//         Pin::Id: ValidPwmOutputPin<SliceNum, pwm::A>;
+//     fn enable(&mut self);
+//     fn set_freq(&mut self, fpwm: f32) -> (f32, f32, u16, u16, f32, u8, u8);
+//     fn set_duty(&mut self, duty: u16);
+// }
+
+// TODO : a generic structure for PWM Output
+
+// pub struct PwmOutput<SliceNum: SliceId, C: ChannelId> {
+//     slice: Slice<SliceNum, pwm::FreeRunning>,
+//     channel: C,
+// }
+
+// impl<SliceNum: SliceId, C: ChannelId> PwmOutput<SliceNum, C> {
+//     pub fn new<Pin: AnyPin>(
+//         mut slice: Slice<SliceNum, pwm::FreeRunning>,
+//         pin: Pin,
+//         channel: C,
+//     ) -> Self
+//     where
+//         Pin::Id: ValidPwmOutputPin<SliceNum, C>,
+//     {
+//         let _ = match channel {
+//             A => slice.channel_a.output_to(pin),
+//             B => slice.channel_b.output_to(pin),
+//         };
+//         Self { slice, channel }
+//     }
+// }
 /////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////
+/// PWM Input only channel B
+//////////////////////////////////////////////////////
+
+pub struct PwmInput<SliceNum: SliceId> {
+    slice: Slice<SliceNum, pwm::InputHighRunning>,
+}
+
+impl<SliceNum: SliceId> PwmInput<SliceNum> {
+    pub fn new<Pin: AnyPin>(mut slice: Slice<SliceNum, pwm::InputHighRunning>, pin: Pin) -> Self
+    where
+        Pin::Id: ValidPwmInputPin<SliceNum>,
+    {
+        slice.channel_b.input_from(pin);
+
+        Self { slice: slice }
+    }
+
+    pub fn enable(&mut self) {
+        self.slice.clr_ph_correct();
+        self.slice.enable();
+    }
+
+    pub fn disable(&mut self) {
+        self.slice.disable();
+    }
+
+    pub fn measure_freq(&mut self, delay: &()) -> (f32, f32) {
+        self.slice.set_div_int(100);
+
+        self.slice.enable();
+
+        delay;
+        let counter0 = self.slice.get_counter();
+        self.slice.disable();
+
+        let counting_rate = 125000000.0 * 0.01;
+        let max_possible_count = counting_rate * 0.01;
+        let counter = self.slice.get_counter();
+        let duty = counter as f32 / max_possible_count;
+
+        (counter as f32, counter0 as f32)
+    }
+}
+//////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
 
 fn binary_search(
