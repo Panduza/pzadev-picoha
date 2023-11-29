@@ -1,9 +1,12 @@
+use embedded_hal::blocking::delay::DelayMs;
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 use panic_halt as _;
 
 use embedded_hal::PwmPin;
 use rp2040_hal::clocks::Clock;
+
+use rp2040_hal::Timer;
 
 use rp2040_hal::pwm::{CountFallingEdge, CountRisingEdge, InputHighRunning};
 
@@ -41,31 +44,62 @@ impl<SliceNum: SliceId> PwmOutput_A<SliceNum> {
         self.slice.disable();
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// TODO : essayer de faire une fonction pwm configure qui va permettre de configurer les div int,frac...
+    /// et ensuite de choisir le bon div int en foction de la range du pwm signal souhaite
+    /// //////////////////////////////////////////////////////////////////////////
+
+    // pub fn configure(&mut self) {
+    //     self.slice.set_ph_correct();
+    //     self.slice.set_div_int(255);
+    //     self.slice.set_div_frac(0);
+    // }
+
     pub fn set_freq(&mut self, fpwm: f32) -> (f32, f32, u16, u16, f32, u8, u8) {
         let period_wanted = (FSYS as f32) / fpwm;
         // let top = self.pwm_slices.pwm5.get_top();
         let precision = 0.1f32;
-        let mut top = (period_wanted / 2.0).clamp(0.0, u16::MAX as f32);
 
         self.slice.set_ph_correct();
         self.slice.set_div_int(1);
         self.slice.set_div_frac(0);
 
-        let csr_ph_correct = 1u8;
-        let div_int = 1u8;
+        let mut csr_ph_correct = 1u8;
+        let mut div_int = 1u8;
         let div_frac = 0u8;
+
+        if fpwm < 1000.0 {
+            div_int = 255;
+            self.slice.set_div_int(255);
+        } else if fpwm > 62_500_500.0 {
+            csr_ph_correct = 0u8;
+            self.slice.clr_ph_correct();
+        }
+
+        let top = (period_wanted
+            / ((csr_ph_correct + 1) as f32 * (div_int + (div_frac / 16)) as f32))
+            - 1.0;
 
         // fPWM = fsys/period
         // period = (TOP + 1)*(CSR_PH_CORRECT + 1)*(DIV_INT + (DIV_FRAC/16))
 
         let period = (top as f32 + 1.0)
             * (csr_ph_correct as f32 + 1.0)
-            * (div_int as f32 + div_frac as f32 / 16.0);
+            * (div_int as f32 + (div_frac as f32 / 16.0));
 
-        let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) =
-            binary_search(period_wanted, period, top as u16, precision);
+        let real_fpwm = (FSYS as f32) / period;
 
-        self.slice.set_top(top);
+        let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) = binary_search(
+            period_wanted,
+            period,
+            top as u16,
+            csr_ph_correct,
+            div_int,
+            div_frac,
+            precision,
+        );
+
+        self.slice.set_top(top as u16);
         self.slice.set_div_frac(div_frac);
         self.slice.set_div_int(div_int);
 
@@ -119,27 +153,47 @@ impl<SliceNum: SliceId> PwmOutput_B<SliceNum> {
         let period_wanted = (FSYS as f32) / fpwm;
         // let top = self.pwm_slices.pwm5.get_top();
         let precision = 0.1f32;
-        let mut top = (period_wanted / 2.0).clamp(0.0, u16::MAX as f32);
 
         self.slice.set_ph_correct();
         self.slice.set_div_int(1);
         self.slice.set_div_frac(0);
 
-        let csr_ph_correct = 1u8;
-        let div_int = 1u8;
+        let mut csr_ph_correct = 1u8;
+        let mut div_int = 1u8;
         let div_frac = 0u8;
+
+        if fpwm < 1000.0 {
+            div_int = 255;
+            self.slice.set_div_int(255);
+        } else if fpwm > 62_500_500.0 {
+            csr_ph_correct = 0u8;
+            self.slice.clr_ph_correct();
+        }
+
+        let top = (period_wanted
+            / ((csr_ph_correct + 1) as f32 * (div_int + (div_frac / 16)) as f32))
+            - 1.0;
 
         // fPWM = fsys/period
         // period = (TOP + 1)*(CSR_PH_CORRECT + 1)*(DIV_INT + (DIV_FRAC/16))
 
         let period = (top as f32 + 1.0)
             * (csr_ph_correct as f32 + 1.0)
-            * (div_int as f32 + div_frac as f32 / 16.0);
+            * (div_int as f32 + (div_frac as f32 / 16.0));
 
-        let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) =
-            binary_search(period_wanted, period, top as u16, precision);
+        let real_fpwm = (FSYS as f32) / period;
 
-        self.slice.set_top(top);
+        let (period_wanted, period, top, iterations, real_fpwm, div_frac, div_int) = binary_search(
+            period_wanted,
+            period,
+            top as u16,
+            csr_ph_correct,
+            div_int,
+            div_frac,
+            precision,
+        );
+
+        self.slice.set_top(top as u16);
         self.slice.set_div_frac(div_frac);
         self.slice.set_div_int(div_int);
 
@@ -218,30 +272,34 @@ impl<SliceNum: SliceId> PwmInput<SliceNum> {
         Self { slice: slice }
     }
 
-    pub fn enable(&mut self) {
-        self.slice.clr_ph_correct();
+    // pub fn enable(&mut self) {
+    //     self.slice.clr_ph_correct();
+    //     self.slice.enable();
+    // }
+
+    // pub fn disable(&mut self) {
+    //     self.slice.disable();
+    // }
+
+    pub fn measure_freq(&mut self, timer: &mut Timer) -> (f32, f32) {
+        // self.slice.set_div_int(100);
+
         self.slice.enable();
-    }
 
-    pub fn disable(&mut self) {
-        self.slice.disable();
-    }
-
-    pub fn measure_freq(&mut self, delay: &()) -> (f32, f32) {
-        self.slice.set_div_int(100);
-
-        self.slice.enable();
-
-        delay;
-        let counter0 = self.slice.get_counter();
-        self.slice.disable();
+        timer.delay_ms(20);
+        // self.slice.disable();
 
         let counting_rate = 125000000.0 * 0.01;
         let max_possible_count = counting_rate * 0.01;
-        let counter = self.slice.get_counter();
+        let mut counter = self.slice.get_counter();
         let duty = counter as f32 / max_possible_count;
+        let freq = 125000000.0 / (counter as f32);
 
-        (counter as f32, counter0 as f32)
+        while counter < 65530 {
+            counter = self.slice.get_counter();
+        }
+
+        (counter as f32, freq as f32)
     }
 }
 //////////////////////////////////////////////////////////////////////////////////
@@ -251,12 +309,11 @@ fn binary_search(
     period_wanted: f32,
     mut period: f32,
     mut top: u16,
+    mut csr_ph_correct: u8,
+    mut div_int: u8,
+    mut div_frac: u8,
     precision: f32,
 ) -> (f32, f32, u16, u16, f32, u8, u8) {
-    let mut csr_ph_correct = 1u8;
-    let mut div_int = 1u8;
-    let mut div_frac = 0u8;
-
     // Iterative adjustment to achieve the desired frequency
     let mut iterations = 0;
     let max_iterations = 20; // Set an upper limit on iterations

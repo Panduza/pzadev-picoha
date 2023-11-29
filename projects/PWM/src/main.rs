@@ -64,17 +64,17 @@ fn main() -> ! {
     ///////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////
 
-    // For now PWM OUTPUT can only generate a frequency above 500 Hz
+    // For now PWM OUTPUT can only generate a frequency above 3.7 Hz
 
     let mut pwm_output_5_a = PwmOutput_A::new(pwm.pwm_slices.pwm5, pwm.pins.gpio10);
-    let result = pwm_output_5_a.set_freq(1378.9);
-    pwm_output_5_a.set_duty(10.7);
+    let result = pwm_output_5_a.set_freq(5.6);
+    pwm_output_5_a.set_duty(15.7);
     let duty_5_a = pwm_output_5_a.get_duty();
     pwm_output_5_a.enable();
 
     let mut pwm_output_6_a = PwmOutput_A::new(pwm.pwm_slices.pwm6, pwm.pins.gpio12);
-    let result = pwm_output_6_a.set_freq(505.9);
-    pwm_output_6_a.set_duty(25.8);
+    let result = pwm_output_6_a.set_freq(7.7);
+    pwm_output_6_a.set_duty(35.8);
     let duty_6_a = pwm_output_6_a.get_duty();
     pwm_output_6_a.enable();
 
@@ -97,7 +97,7 @@ fn main() -> ! {
     writeln!(uart, "period_wanted : {period_wanted}\r").unwrap();
     writeln!(uart, "period : {period}\r").unwrap();
     writeln!(uart, "top : {top}\r").unwrap();
-    writeln!(uart, "iteration : {iteration}\r").unwrap();
+    // writeln!(uart, "iteration : {iteration}\r").unwrap();
     writeln!(uart, "real_fpwm : {real_fpwm}\r").unwrap();
     writeln!(uart, "div_frac : {div_frac}\r").unwrap();
     writeln!(uart, "div_int : {div_int}\r").unwrap();
@@ -107,18 +107,19 @@ fn main() -> ! {
         pwm.pins.gpio19,
     );
 
+    // let mut delay = pwm.delay.delay_ms(20);
+    let mut timer = pwm.timer;
+
+    let counter = pwm_input_1_b.measure_freq(&mut timer).0;
+    let freq = pwm_input_1_b.measure_freq(&mut timer).1;
+
+    writeln!(uart, "counter : {counter}\r").unwrap();
+    writeln!(uart, "freq : {freq}\r").unwrap();
+
     // let system_frequency = pwm.clocks.system_clock.freq();
     // writeln!(uart, "system_frequency : {system_frequency}\r").unwrap();
 
-    loop {
-        let mut delay = pwm.delay.delay_ms(10);
-
-        let couunter = pwm_input_1_b.measure_freq(&delay).0;
-        let duty = pwm_input_1_b.measure_freq(&delay).1;
-
-        writeln!(uart, "couunter : {couunter}\r").unwrap();
-        writeln!(uart, "duty : {duty}\r").unwrap();
-    }
+    loop {}
 }
 
 // End of file

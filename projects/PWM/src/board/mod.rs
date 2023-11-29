@@ -8,6 +8,8 @@ use rp2040_hal as hal;
 
 use rp2040_hal::clocks::Clock;
 
+use rp2040_hal::Timer;
+
 // A shorter alias for the Peripheral Access Crate, which provides low-level
 // register access
 use hal::pac;
@@ -18,11 +20,11 @@ const XTAL_FREQ_HZ: u32 = 12_000_000u32;
 
 pub struct Board {
     pub pwm_slices: hal::pwm::Slices,
-    pub delay: cortex_m::delay::Delay,
     pub pins: hal::gpio::Pins,
     pub clocks: ClocksManager,
     pub uart0: hal::pac::UART0,
     pub resets: hal::pac::RESETS,
+    pub timer: hal::Timer,
 }
 
 impl Board {
@@ -61,20 +63,18 @@ impl Board {
             &mut pac.RESETS,
         );
 
-        // The delay object lets us wait for specified amounts of time (in
-        // milliseconds)
-        let delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+        let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
 
         // Init PWMs
         let pwm_slices = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS);
 
         Self {
-            delay: delay,
             pwm_slices: pwm_slices,
             pins: pins,
             clocks: clocks,
             uart0: pac.UART0,
             resets: pac.RESETS,
+            timer: timer,
         }
     }
 }
