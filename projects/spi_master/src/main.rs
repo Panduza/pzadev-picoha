@@ -7,7 +7,7 @@
 use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 use embedded_hal::prelude::*;
 use panic_probe as _;
 
@@ -106,7 +106,6 @@ fn main() -> ! {
     spi_cs.set_high().unwrap(); // set inactif
     delay.delay_ms(200);
 
-    let mut said_hello = false;
     loop {
         // Check for new data
         if usb_dev.poll(&mut [&mut serial]) {
@@ -119,33 +118,24 @@ fn main() -> ! {
                     // Do nothing
                 }
                 Ok(count) => {
-                    // send received on SPI
-                    // let mut wr_ptr = &buf[..count];
-                    spi_cs.set_low().unwrap();
-                    let _transfer_success = spi.transfer(&mut buf[..count]);
-                    spi_cs.set_high().unwrap();
-                    // buf.iter_mut().take(count).for_each(|b| {
-                    //     b.make_ascii_uppercase();
-                    // });
-                    // Send back to the host
-                    // let mut wr_ptr = &buf[..count];
-                    // while !wr_ptr.is_empty() {
-                    //     match serial.write(wr_ptr) {
-                    //         Ok(len) => wr_ptr = &wr_ptr[len..],
-                    //         // On error, just drop unwritten data.
-                    //         // One possible error is Err(WouldBlock), meaning the USB
-                    //         // write buffer is full.
-                    //         Err(_) => break,
-                    //     };
-                    // }
+                    led_pin.toggle().unwrap(); // Toggle led each time data are received
+
+                    // send all received data on SPI at once
+                    {
+                        spi_cs.set_low().unwrap();
+                        let _transfer_success = spi.transfer(&mut buf[..count]);
+                        spi_cs.set_high().unwrap();
+                        let _ = serial.write(_transfer_success.unwrap());
+                    }
+
+                    // clean all to ensure no issue
+                    for n in 0..count {
+                        buf[n] = 0u8;
+                    }
+
                 }
             }
         }
-        
-        // spi_cs.set_low().unwrap();
-        // let mut data: [u8; 2] = [0xd0, 0x0];
-        // let _transfer_success = spi.transfer(&mut data);
-        // spi_cs.set_high().unwrap();
         // info!("on!");
         // led_pin.set_high().unwrap();
         // delay.delay_ms(500);
