@@ -272,34 +272,41 @@ impl<SliceNum: SliceId> PwmInput<SliceNum> {
         Self { slice: slice }
     }
 
-    // pub fn enable(&mut self) {
-    //     self.slice.clr_ph_correct();
-    //     self.slice.enable();
-    // }
+    // TODO : à corriger car pour l'instant la mesure du duty cycle est correcte à partir de 1000 Hz
+    pub fn measure_duty_cycle(&mut self, timer: &mut Timer) -> f32 {
+        self.slice.set_div_int(100);
 
-    // pub fn disable(&mut self) {
-    //     self.slice.disable();
-    // }
-
-    pub fn measure_freq(&mut self, timer: &mut Timer) -> (f32, f32) {
-        // self.slice.set_div_int(100);
+        self.slice.clr_ph_correct();
 
         self.slice.enable();
+        timer.delay_ms(10);
+        self.slice.disable();
 
-        timer.delay_ms(20);
-        // self.slice.disable();
+        let counting_rate: f32 = FSYS as f32 / 100.0;
+        let max_possible_count = counting_rate as f32 * 0.01;
 
-        let counting_rate = 125000000.0 * 0.01;
-        let max_possible_count = counting_rate * 0.01;
-        let mut counter = self.slice.get_counter();
-        let duty = counter as f32 / max_possible_count;
-        let freq = 125000000.0 / (counter as f32);
+        let counter = self.slice.get_counter();
 
-        while counter < 65530 {
-            counter = self.slice.get_counter();
-        }
+        let duty = (counter as f32 / max_possible_count) * 100.0;
 
-        (counter as f32, freq as f32)
+        return duty;
+    }
+
+    pub fn measure_frequency(&mut self, timer: &mut Timer) -> (f32, f32) {
+        // self.slice.set_div_int(1);
+
+        self.slice.set_ph_correct();
+        self.slice.enable();
+
+        timer.delay_ms(1);
+
+        self.slice.disable();
+
+        let total_counts = self.slice.get_counter() as f32;
+
+        let frequency = (125000000.0 * 0.001) / (total_counts);
+
+        (frequency, total_counts)
     }
 }
 //////////////////////////////////////////////////////////////////////////////////
@@ -320,9 +327,6 @@ fn binary_search(
 
     let mut lower_bound_div_frac = 0;
     let mut upper_bound_div_frac = u8::MAX;
-
-    let mut lower_bound_div_int = 1;
-    let mut upper_bound_div_int = u8::MAX;
 
     let fpwm_wanted = (FSYS as f32) / period_wanted;
     let mut real_fpwm = 0.0;
@@ -348,14 +352,6 @@ fn binary_search(
         }
 
         div_frac = (lower_bound_div_frac + upper_bound_div_frac) / 2;
-
-        // if period_wanted < period {
-        //     upper_bound_div_int = div_int;
-        // } else {
-        //     lower_bound_div_int = div_int;
-        // }
-
-        // div_int = (lower_bound_div_int + upper_bound_div_int) / 2;
 
         iterations += 1;
     }
