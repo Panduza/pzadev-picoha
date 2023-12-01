@@ -73,6 +73,13 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
+    // Gpio16 used istead of led pin as pico W + dev board is used as a target
+    let mut led_pin = pins.gpio16.into_push_pull_output();
+
+    /*****************************************************************
+     * USB Configuration
+     *****************************************************************/
+
     // Create the device-specific USB peripheral driver using rp-hal usb bus
     let usb_bus = UsbBusAllocator::new(usb::UsbBus::new(
         pac.USBCTRL_REGS,
@@ -116,8 +123,10 @@ fn main() -> ! {
 
     // ------ No more USB code after this point in main! --------------------
 
-    // Gpio16 used istead of led pin as pico W + dev board is used as a target
-    let mut led_pin = pins.gpio16.into_push_pull_output();
+    
+    /*****************************************************************
+     * SPI Configuration
+     *****************************************************************/
     
     // let spi_sclk: gpio::Pin<_, gpio::FunctionSpi, gpio::PullNone> = pins.gpio2.reconfigure();
     // let spi_mosi: gpio::Pin<_, gpio::FunctionSpi, gpio::PullNone> = pins.gpio3.reconfigure();
