@@ -251,18 +251,19 @@ impl<SliceNum: SliceId> PwmOutput_B<SliceNum> {
 //         Self { slice, channel }
 //     }
 // }
+
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////
-/// PWM Input only channel B
-//////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
+/// PWM Input for reading duty cycle (only channel B) ///
+///////////////////////////////////////////////////////
 
-pub struct PwmInput<SliceNum: SliceId> {
+pub struct PwmInput_Duty<SliceNum: SliceId> {
     slice: Slice<SliceNum, pwm::InputHighRunning>,
 }
 
-impl<SliceNum: SliceId> PwmInput<SliceNum> {
+impl<SliceNum: SliceId> PwmInput_Duty<SliceNum> {
     pub fn new<Pin: AnyPin>(mut slice: Slice<SliceNum, pwm::InputHighRunning>, pin: Pin) -> Self
     where
         Pin::Id: ValidPwmInputPin<SliceNum>,
@@ -291,25 +292,41 @@ impl<SliceNum: SliceId> PwmInput<SliceNum> {
 
         return duty;
     }
+}
+///////////////////////////////////////////////////////
+/// PWM Input for reading frequency (only channel B) ///
+///////////////////////////////////////////////////////
 
-    pub fn measure_frequency(&mut self, timer: &mut Timer) -> (f32, f32) {
-        // self.slice.set_div_int(1);
+pub struct PwmInput_Freq<SliceNum: SliceId> {
+    slice: Slice<SliceNum, pwm::CountRisingEdge>,
+}
 
-        self.slice.set_ph_correct();
+impl<SliceNum: SliceId> PwmInput_Freq<SliceNum> {
+    pub fn new<Pin: AnyPin>(mut slice: Slice<SliceNum, pwm::CountRisingEdge>, pin: Pin) -> Self
+    where
+        Pin::Id: ValidPwmInputPin<SliceNum>,
+    {
+        slice.channel_b.input_from(pin);
+
+        Self { slice: slice }
+    }
+
+    pub fn measure_frequency(&mut self, timer: &mut Timer) -> f32 {
+        self.slice.set_div_int(1);
         self.slice.enable();
 
-        timer.delay_ms(1);
+        timer.delay_ms(1000);
 
         self.slice.disable();
 
-        let total_counts = self.slice.get_counter() as f32;
+        let counter = self.slice.get_counter();
+        let frequency = counter as f32;
 
-        let frequency = (125000000.0 * 0.001) / (total_counts);
-
-        (frequency, total_counts)
+        return frequency;
     }
 }
 //////////////////////////////////////////////////////////////////////////////////
+/// Functions
 /////////////////////////////////////////////////////////////////////////////////
 
 fn binary_search(

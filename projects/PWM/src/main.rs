@@ -5,7 +5,7 @@ mod board;
 mod platform;
 
 use board::Board;
-use platform::{PwmInput, PwmOutput_A, PwmOutput_B};
+use platform::{PwmInput_Duty, PwmInput_Freq, PwmOutput_A, PwmOutput_B};
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
@@ -73,7 +73,7 @@ fn main() -> ! {
     // pwm_output_5_a.enable();
 
     let mut pwm_output_6_a = PwmOutput_A::new(pwm.pwm_slices.pwm6, pwm.pins.gpio12);
-    let result = pwm_output_6_a.set_freq(50.0);
+    let result = pwm_output_6_a.set_freq(1550.3);
     pwm_output_6_a.set_duty(27.9);
     let duty_6_a = pwm_output_6_a.get_duty();
     pwm_output_6_a.enable();
@@ -102,28 +102,26 @@ fn main() -> ! {
     writeln!(uart, "div_frac : {div_frac}\r").unwrap();
     writeln!(uart, "div_int : {div_int}\r").unwrap();
 
-    let mut pwm_input_1_b = PwmInput::new(pwm.pwm_slices.pwm1.into_mode(), pwm.pins.gpio19);
+    // let mut pwm_input_1_b = PwmInput::new(pwm.pwm_slices.pwm1.into_mode(), pwm.pins.gpio19);
+
+    let mut pwm_input_1_b_freq =
+        PwmInput_Freq::new(pwm.pwm_slices.pwm1.into_mode(), pwm.pins.gpio19);
+
+    let mut pwm_input_2_b_duty =
+        PwmInput_Duty::new(pwm.pwm_slices.pwm2.into_mode(), pwm.pins.gpio21);
 
     let mut timer = pwm.timer;
 
-    let duty_measured = pwm_input_1_b.measure_duty_cycle(&mut timer);
-    let test = pwm_input_1_b.measure_frequency(&mut timer);
+    let freq = pwm_input_1_b_freq.measure_frequency(&mut timer);
+    let duty = pwm_input_2_b_duty.measure_duty_cycle(&mut timer);
 
-    let freq_measured = test.0;
-    let counter = test.1;
-
-    writeln!(uart, "duty_measured : {duty_measured}\r").unwrap();
-    writeln!(uart, "freq_measured : {freq_measured}\r").unwrap();
-    writeln!(uart, "counter : {counter}\r").unwrap();
+    writeln!(uart, "freq : {freq}\r").unwrap();
+    writeln!(uart, "duty : {duty}\r").unwrap();
 
     // let system_frequency = pwm.clocks.system_clock.freq();
     // writeln!(uart, "system_frequency : {system_frequency}\r").unwrap();
 
-    loop {
-        // let test = pwm_input_1_b.measure_frequency(&mut timer);
-        // writeln!(uart, "freq_measured : {freq_measured}\r").unwrap();
-        // writeln!(uart, "counter : {counter}\r").unwrap();
-    }
+    loop {}
 }
 
 // End of file
