@@ -29,7 +29,7 @@ use bsp::hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    gpio, gpio::bank0::{Gpio2, Gpio3, Gpio4},
+    gpio,
     spi,
     usb
 };
@@ -49,18 +49,105 @@ static mut USB_SERIAL: Option<SerialPort<usb::UsbBus>> = None;
 /// Alias the type for our SPI to make things clearer.
 // type SpiPins = (
 //     gpio::Pin<Gpio2, gpio::FunctionSpi, gpio::PullNone>,
-//     gpio::Pin<<Gpio3 as spi::ValidPinIdTx<pac::SPI0>> , gpio::FunctionSpi, gpio::PullNone>,
+//     gpio::Pin<Gpio3 as spi::ValidPinIdTx<pac::SPI0>, gpio::FunctionSpi, gpio::PullNone>,
 //     gpio::Pin<Gpio4, gpio::FunctionSpi, gpio::PullNone>,
 // );
-// // type SpiPins = (
-// //     dyn spi::ValidPinIdSck<pac::SPI0>,
-// //     dyn spi::ValidPinIdTx<pac::SPI0>,
-// //     dyn spi::ValidPinIdRx<pac::SPI0>,
-// // );
+// type SpiPins = (
+//     dyn spi::ValidPinIdSck<pac::SPI0>,
+//     dyn spi::ValidPinIdTx<pac::SPI0>,
+//     dyn spi::ValidPinIdRx<pac::SPI0>,
+// );
 
 // type Spi = spi::Spi<spi::Enabled, pac::SPI0, SpiPins, 8>;
 
 // static mut SPI_INSTANCE: Option<Spi> = None;
+
+use core::cell::RefCell;
+use critical_section::Mutex;
+use heapless::spsc::Queue;
+
+/// This describes the queue we use for outbound UART data
+struct UartQueue {
+    mutex_cell_queue: Mutex<RefCell<Queue<u8, 64>>>,
+    interrupt: pac::Interrupt,
+}
+
+static UART_QUEUE: UartQueue = UartQueue {
+    mutex_cell_queue: Mutex::new(RefCell::new(Queue::new())),
+    interrupt: pac::Interrupt::UART0_IRQ,
+};
+
+impl UartQueue {
+    /// Try and get some data out of the UART Queue. Returns None if queue empty.
+    fn read_byte(&self) -> Option<u8> {
+        critical_section::with(|cs| {
+            let cell_queue = self.mutex_cell_queue.borrow(cs);
+            let mut queue = cell_queue.borrow_mut();
+            queue.dequeue()
+        })
+    }
+
+    /// Peek at the next byte in the queue without removing it.
+    fn peek_byte(&self) -> Option<u8> {
+        critical_section::with(|cs| {
+            let cell_queue = self.mutex_cell_queue.borrow(cs);
+            let queue = cell_queue.borrow_mut();
+            queue.peek().cloned()
+        })
+    }
+
+    /// Write some data to the queue, spinning until it all fits.
+    fn write_bytes_blocking(&self, data: &[u8]) {
+        // Go through all the bytes we need to write.
+        for byte in data.iter() {
+            // Keep trying until there is space in the queue. But release the
+            // mutex between each attempt, otherwise the IRQ will never run
+            // and we will never have space!
+            let mut written = false;
+            while !written {
+                // Grab the mutex, by turning interrupts off. NOTE: This
+                // doesn't work if you are using Core 1 as we only turn
+                // interrupts off on one core.
+                critical_section::with(|cs| {
+                    // Grab the mutex contents.
+                    let cell_queue = self.mutex_cell_queue.borrow(cs);
+                    // Grab mutable access to the queue. This can't fail
+                    // because there are no interrupts running.
+                    let mut queue = cell_queue.borrow_mut();
+                    // Try and put the byte in the queue.
+                    if queue.enqueue(*byte).is_ok() {
+                        // It worked! We must have had space.
+                        if !pac::NVIC::is_enabled(self.interrupt) {
+                            unsafe {
+                                // Now enable the UART interrupt in the *Nested
+                                // Vectored Interrupt Controller*, which is part
+                                // of the Cortex-M0+ core. If the FIFO has space,
+                                // the interrupt will run as soon as we're out of
+                                // the closure.
+                                pac::NVIC::unmask(self.interrupt);
+                                // We also have to kick the IRQ in case the FIFO
+                                // was already below the threshold level.
+                                pac::NVIC::pend(self.interrupt);
+                            }
+                        }
+                        written = true;
+                    }
+                });
+            }
+        }
+    }
+}
+
+impl core::fmt::Write for &UartQueue {
+    /// This function allows us to `writeln!` on our global static UART queue.
+    /// Note we have an impl for &UartQueue, because our global static queue
+    /// is not mutable and `core::fmt::Write` takes mutable references.
+    fn write_str(&mut self, data: &str) -> core::fmt::Result {
+        self.write_bytes_blocking(data.as_bytes());
+        Ok(())
+    }
+}
+
 
 
 
