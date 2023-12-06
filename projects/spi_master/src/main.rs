@@ -11,6 +11,8 @@ use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 use embedded_hal::prelude::*;
 use panic_probe as _;
 
+use core::convert::Infallible;
+
 // the interrupt attribute comes from the device crate not from cortex-m-rt
 use rp_pico::hal::pac::interrupt;
 
@@ -27,7 +29,7 @@ use bsp::hal::{
     pac,
     sio::Sio,
     watchdog::Watchdog,
-    gpio,
+    gpio, gpio::bank0::{Gpio2, Gpio3, Gpio4},
     spi,
     usb
 };
@@ -43,6 +45,24 @@ static mut USB_DEVICE: Option<UsbDevice<usb::UsbBus>> = None;
 static mut USB_BUS: Option<UsbBusAllocator<usb::UsbBus>> = None;
 /// The USB Serial Device Driver (shared with the interrupt).
 static mut USB_SERIAL: Option<SerialPort<usb::UsbBus>> = None;
+
+/// Alias the type for our SPI to make things clearer.
+// type SpiPins = (
+//     gpio::Pin<Gpio2, gpio::FunctionSpi, gpio::PullNone>,
+//     gpio::Pin<<Gpio3 as spi::ValidPinIdTx<pac::SPI0>> , gpio::FunctionSpi, gpio::PullNone>,
+//     gpio::Pin<Gpio4, gpio::FunctionSpi, gpio::PullNone>,
+// );
+// // type SpiPins = (
+// //     dyn spi::ValidPinIdSck<pac::SPI0>,
+// //     dyn spi::ValidPinIdTx<pac::SPI0>,
+// //     dyn spi::ValidPinIdRx<pac::SPI0>,
+// // );
+
+// type Spi = spi::Spi<spi::Enabled, pac::SPI0, SpiPins, 8>;
+
+// static mut SPI_INSTANCE: Option<Spi> = None;
+
+
 
 #[entry]
 fn main() -> ! {
@@ -128,21 +148,27 @@ fn main() -> ! {
      * SPI Configuration
      *****************************************************************/
     
-    // let spi_sclk: gpio::Pin<_, gpio::FunctionSpi, gpio::PullNone> = pins.gpio2.reconfigure();
-    // let spi_mosi: gpio::Pin<_, gpio::FunctionSpi, gpio::PullNone> = pins.gpio3.reconfigure();
-    // let spi_miso: gpio::Pin<_, gpio::FunctionSpi, gpio::PullUp> = pins.gpio4.reconfigure();
-    // let mut spi_cs = pins.gpio5.into_push_pull_output();
+    let spi_sclk: gpio::Pin<_, gpio::FunctionSpi, gpio::PullNone> = pins.gpio2.reconfigure();
+    let spi_mosi: gpio::Pin<_, gpio::FunctionSpi, gpio::PullNone> = pins.gpio3.reconfigure();
+    let spi_miso: gpio::Pin<_, gpio::FunctionSpi, gpio::PullUp> = pins.gpio4.reconfigure();
+    let mut spi_cs = pins.gpio5.into_push_pull_output();
 
-    // let spi = spi::Spi::<_, _, _, 8>::new(pac.SPI0, (spi_mosi, spi_miso, spi_sclk));
+    // Create the device-specific SPI peripheral
+    let spi = spi::Spi::<_, _, _, 8>::new(pac.SPI0, (spi_mosi, spi_miso, spi_sclk));
 
-    // let mut spi = spi.init(
-    //     &mut pac.RESETS,
-    //     clocks.peripheral_clock.freq(),
-    //     400.kHz(),
-    //     embedded_hal::spi::MODE_0,
-    // );
-    // spi_cs.set_high().unwrap(); // set inactif
-    // delay.delay_ms(200);
+    // initialised SPI
+    let spi = spi.init(
+        &mut pac.RESETS,
+        clocks.peripheral_clock.freq(),
+        400.kHz(),
+        embedded_hal::spi::MODE_0,
+    );
+    // unsafe {
+    //     SPI_INSTANCE = Some(spi);
+    // }
+
+    spi_cs.set_high().unwrap(); // set inactif
+    delay.delay_ms(200);
 
     loop {
         // Check for new data
@@ -189,6 +215,7 @@ unsafe fn USBCTRL_IRQ() {
     // Grab the global objects. This is OK as we only access them under interrupt.
     let usb_dev = USB_DEVICE.as_mut().unwrap();
     let serial = USB_SERIAL.as_mut().unwrap();
+    // let spi = SPI_INSTANCE.as_mut().unwrap();
 
     // Say hello exactly once on start-up
     if !SAID_HELLO.load(Ordering::Relaxed) {
