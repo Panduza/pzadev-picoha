@@ -3,6 +3,9 @@ members  = [
 	"src/common/protocols",
 ]
 
+
+
+
 [package]
 edition = "2021"
 name = "picoha-pwm"
@@ -13,6 +16,8 @@ license = "MIT OR Apache-2.0"
 cortex-m = "0.7.2"
 cortex-m-rt = "0.7"
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
+embedded-time = "0.12.1"
+
 
 panic-halt = "0.2.0"
 fugit = "0.3.6"
@@ -20,6 +25,15 @@ fugit = "0.3.6"
 defmt = "0.3"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
+
+# -- USB related crates
+
+usb-device    = "0.2.9"
+usbd-serial   = "0.1.1"
+
+# -- Local crates
+
+protocols = {path = "src/common/protocols"}
 
 # We're using a Pico by default on this template
 rp-pico = "0.8"

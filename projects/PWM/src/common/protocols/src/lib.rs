@@ -2,6 +2,7 @@
 
 pub mod common;
 pub mod ha;
+pub mod pwm;
 pub mod slip;
 
 #[cfg(tests)]

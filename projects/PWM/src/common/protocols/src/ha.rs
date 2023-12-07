@@ -1,6 +1,8 @@
 /// Picoha simple protocol
 use crc16;
 
+use core::mem;
+
 use heapless::Vec;
 
 #[derive(Debug)]
@@ -363,6 +365,29 @@ impl<'a> ArgParser<'a> {
             self.idx += 2;
 
             Some(x)
+        } else {
+            None
+        }
+    }
+
+    ///////////////////////////////////////////////
+    /// à tester
+    //////////////////////////////////////////////
+    pub fn consume_f32(&mut self) -> Option<f32> {
+        const SIZE_OF_F32: usize = mem::size_of::<f32>();
+
+        if self.idx + SIZE_OF_F32 <= self.buf.len() {
+            let bytes: [u8; SIZE_OF_F32] = [
+                self.buf[self.idx],
+                self.buf[self.idx + 1],
+                self.buf[self.idx + 2],
+                self.buf[self.idx + 3],
+            ];
+
+            let value = f32::from_be_bytes(bytes);
+            self.idx += SIZE_OF_F32;
+
+            Some(value)
         } else {
             None
         }

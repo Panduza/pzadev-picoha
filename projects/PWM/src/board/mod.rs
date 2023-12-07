@@ -1,4 +1,3 @@
-use hal::clocks::ClocksManager;
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 use panic_halt as _;
@@ -9,6 +8,8 @@ use rp2040_hal as hal;
 use rp2040_hal::clocks::Clock;
 
 use rp2040_hal::Timer;
+
+use usb_device::class_prelude::UsbBusAllocator;
 
 // A shorter alias for the Peripheral Access Crate, which provides low-level
 // register access
@@ -21,10 +22,10 @@ const XTAL_FREQ_HZ: u32 = 12_000_000u32;
 pub struct Board {
     pub pwm_slices: hal::pwm::Slices,
     pub pins: hal::gpio::Pins,
-    pub clocks: ClocksManager,
-    pub uart0: hal::pac::UART0,
-    pub resets: hal::pac::RESETS,
+
     pub timer: hal::Timer,
+    pub delay: cortex_m::delay::Delay,
+    pub usb_bus: UsbBusAllocator<hal::usb::UsbBus>,
 }
 
 impl Board {
@@ -63,7 +64,20 @@ impl Board {
             &mut pac.RESETS,
         );
 
+        // Init Timer
         let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
+
+        let delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+
+        // ---- USB init
+
+        let usb = UsbBusAllocator::new(hal::usb::UsbBus::new(
+            pac.USBCTRL_REGS,
+            pac.USBCTRL_DPRAM,
+            clocks.usb_clock,
+            true,
+            &mut pac.RESETS,
+        ));
 
         // Init PWMs
         let pwm_slices = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS);
@@ -71,10 +85,10 @@ impl Board {
         Self {
             pwm_slices: pwm_slices,
             pins: pins,
-            clocks: clocks,
-            uart0: pac.UART0,
-            resets: pac.RESETS,
+
             timer: timer,
+            usb_bus: usb,
+            delay: delay,
         }
     }
 }

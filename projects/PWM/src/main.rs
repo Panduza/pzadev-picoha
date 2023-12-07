@@ -5,7 +5,12 @@ mod board;
 mod platform;
 
 use board::Board;
-use platform::{PwmInput_Duty, PwmInput_Freq, PwmOutput_A, PwmOutput_B};
+use platform::platform_impl::Platform;
+use platform::test::{PwmInput_Duty, PwmInput_Freq, PwmOutput_A, PwmOutput_B};
+
+use protocols::slip::{Decoder, Encoder, SlipError};
+
+use protocols::ha;
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
@@ -14,17 +19,8 @@ use panic_halt as _;
 // Alias for our HAL crate
 use rp2040_hal as hal;
 
-// Some traits we need
-use core::fmt::Write;
-use fugit::RateExtU32;
-
 use embedded_hal::PwmPin;
 use rp2040_hal::clocks::Clock;
-
-use rp2040_hal::pwm::{CountFallingEdge, CountRisingEdge, DynChannelId::B, InputHighRunning};
-
-// UART related types
-use hal::uart::{DataBits, StopBits, UartConfig};
 
 /// The linker will place this boot block at the start of our program image. We
 /// need this to help the ROM bootloader get our code up and running.
@@ -45,83 +41,48 @@ pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
 
 fn main() -> ! {
     // Init Pwm
-    let mut pwm = Board::init();
+    let mut board = Board::init();
 
-    // Configure UART
-    let uart_pins = (
-        // UART TX (characters sent from RP2040) on pin 1 (GPIO0)
-        pwm.pins.gpio0.into_function(),
-        // UART RX (characters received by RP2040) on pin 2 (GPIO1)
-        pwm.pins.gpio1.into_function(),
-    );
-    let mut uart = hal::uart::UartPeripheral::new(pwm.uart0, uart_pins, &mut pwm.resets)
-        .enable(
-            UartConfig::new(9600.Hz(), DataBits::Eight, None, StopBits::One),
-            pwm.clocks.peripheral_clock.freq(),
-        )
-        .unwrap();
+    let usb_bus = board.usb_bus;
 
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
+    let mut platform = Platform::init(board.delay, &usb_bus).unwrap();
 
-    // For now PWM OUTPUT can only generate a frequency above 3.7 Hz
+    let mut encoder = Encoder::<64>::new();
+    let mut decoder = Decoder::<64>::new();
 
-    // let mut pwm_output_5_a = PwmOutput_A::new(pwm.pwm_slices.pwm5, pwm.pins.gpio10);
-    // let result = pwm_output_5_a.set_freq(5.6);
-    // pwm_output_5_a.set_duty(15.7);
-    // let duty_5_a = pwm_output_5_a.get_duty();
-    // pwm_output_5_a.enable();
+    let mut state = true;
 
-    let mut pwm_output_6_a = PwmOutput_A::new(pwm.pwm_slices.pwm6, pwm.pins.gpio12);
+    let mut pwm_output_6_a = PwmOutput_A::new(board.pwm_slices.pwm6, board.pins.gpio12);
     let result = pwm_output_6_a.set_freq(1550.3);
     pwm_output_6_a.set_duty(27.9);
     let duty_6_a = pwm_output_6_a.get_duty();
     pwm_output_6_a.enable();
 
-    // writeln!(uart, "duty_5_a : {duty_5_a}\r").unwrap();
-    // writeln!(uart, "duty_6_a : {duty_6_a}\r").unwrap();
+    loop {
+        if !platform.usb.dev.poll(&mut [&mut platform.usb.serial]) {
+            continue;
+        }
 
-    // let mut pwm_output_1_b = PwmOutput_B::new(pwm.pwm_slices.pwm1, pwm.pins.gpio19);
-    // let result = pwm_output_1_b.set_freq(1543.5);
-    // pwm_output_1_b.set_duty(20.0);
-    // pwm_output_1_b.enable();
+        let mut buf = [0u8; 64];
 
-    let period_wanted = result.0;
-    let period = result.1;
-    let top: u16 = result.2;
-    let iteration: u16 = result.3;
-    let real_fpwm = result.4;
-    let div_frac = result.5;
-    let div_int = result.6;
+        match platform.usb.serial.read(&mut buf) {
+            Err(_) => {}
+            Ok(0) => {}
 
-    writeln!(uart, "period_wanted : {period_wanted}\r").unwrap();
-    writeln!(uart, "period : {period}\r").unwrap();
-    writeln!(uart, "top : {top}\r").unwrap();
-    // writeln!(uart, "iteration : {iteration}\r").unwrap();
-    writeln!(uart, "real_fpwm : {real_fpwm}\r").unwrap();
-    writeln!(uart, "div_frac : {div_frac}\r").unwrap();
-    writeln!(uart, "div_int : {div_int}\r").unwrap();
-
-    // let mut pwm_input_1_b = PwmInput::new(pwm.pwm_slices.pwm1.into_mode(), pwm.pins.gpio19);
-
-    let mut pwm_input_1_b_freq =
-        PwmInput_Freq::new(pwm.pwm_slices.pwm1.into_mode(), pwm.pins.gpio19);
-
-    let mut pwm_input_2_b_duty =
-        PwmInput_Duty::new(pwm.pwm_slices.pwm2.into_mode(), pwm.pins.gpio21);
-
-    let mut timer = pwm.timer;
-
-    let freq = pwm_input_1_b_freq.measure_frequency(&mut timer);
-    let duty = pwm_input_2_b_duty.measure_duty_cycle(&mut timer);
-
-    writeln!(uart, "freq : {freq}\r").unwrap();
-    writeln!(uart, "duty : {duty}\r").unwrap();
-
-    // let system_frequency = pwm.clocks.system_clock.freq();
-    // writeln!(uart, "system_frequency : {system_frequency}\r").unwrap();
-
-    loop {}
+            Ok(count) => {
+                // Send back to the host
+                let mut wr_ptr = &buf[..count];
+                while !wr_ptr.is_empty() {
+                    match platform.usb.serial.write(wr_ptr) {
+                        Ok(len) => wr_ptr = &wr_ptr[len..],
+                        // On error, just drop unwritten data.
+                        // One possible error is Err(WouldBlock), meaning the USB
+                        // write buffer is full.
+                        Err(_) => break,
+                    };
+                }
+            }
+        }
+    }
 }
-
 // End of file
