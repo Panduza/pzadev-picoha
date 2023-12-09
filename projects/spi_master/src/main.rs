@@ -74,7 +74,7 @@ struct UartQueue {
 
 static UART_QUEUE: UartQueue = UartQueue {
     mutex_cell_queue: Mutex::new(RefCell::new(Queue::new())),
-    interrupt: pac::Interrupt::UART0_IRQ,
+    interrupt: pac::Interrupt::USBCTRL_IRQ,
 };
 
 impl UartQueue {
@@ -258,6 +258,10 @@ fn main() -> ! {
     delay.delay_ms(200);
 
     loop {
+        // Check if we have data to transmit
+        while let Some(byte) = UART_TX_QUEUE.peek_byte() {
+            UART_TX_QUEUE.read_byte();
+        }
         // Check for new data
         // if usb_dev.poll(&mut [&mut serial]) {
         //     let mut buf = [0u8; 64];
@@ -321,6 +325,10 @@ unsafe fn USBCTRL_IRQ() {
                 // Do nothing
             }
             Ok(count) => {
+
+
+                UART_TX_QUEUE.write_bytes_blocking(buf[..count].as_ref());
+
                 // Convert to upper case
                 buf.iter_mut().take(count).for_each(|b| {
                     b.make_ascii_uppercase();
