@@ -62,93 +62,9 @@ static mut USB_SERIAL: Option<SerialPort<usb::UsbBus>> = None;
 
 // static mut SPI_INSTANCE: Option<Spi> = None;
 
-use core::cell::RefCell;
-use critical_section::Mutex;
 use heapless::spsc::Queue;
 
-/// This describes the queue we use for outbound UART data
-struct UartQueue {
-    mutex_cell_queue: Mutex<RefCell<Queue<u8, 64>>>,
-    interrupt: pac::Interrupt,
-}
-
-static UART_QUEUE: UartQueue = UartQueue {
-    mutex_cell_queue: Mutex::new(RefCell::new(Queue::new())),
-    interrupt: pac::Interrupt::USBCTRL_IRQ,
-};
-
-impl UartQueue {
-    /// Try and get some data out of the UART Queue. Returns None if queue empty.
-    fn read_byte(&self) -> Option<u8> {
-        critical_section::with(|cs| {
-            let cell_queue = self.mutex_cell_queue.borrow(cs);
-            let mut queue = cell_queue.borrow_mut();
-            queue.dequeue()
-        })
-    }
-
-    /// Peek at the next byte in the queue without removing it.
-    fn peek_byte(&self) -> Option<u8> {
-        critical_section::with(|cs| {
-            let cell_queue = self.mutex_cell_queue.borrow(cs);
-            let queue = cell_queue.borrow_mut();
-            queue.peek().cloned()
-        })
-    }
-
-    /// Write some data to the queue, spinning until it all fits.
-    fn write_bytes_blocking(&self, data: &[u8]) {
-        // Go through all the bytes we need to write.
-        for byte in data.iter() {
-            // Keep trying until there is space in the queue. But release the
-            // mutex between each attempt, otherwise the IRQ will never run
-            // and we will never have space!
-            let mut written = false;
-            while !written {
-                // Grab the mutex, by turning interrupts off. NOTE: This
-                // doesn't work if you are using Core 1 as we only turn
-                // interrupts off on one core.
-                critical_section::with(|cs| {
-                    // Grab the mutex contents.
-                    let cell_queue = self.mutex_cell_queue.borrow(cs);
-                    // Grab mutable access to the queue. This can't fail
-                    // because there are no interrupts running.
-                    let mut queue = cell_queue.borrow_mut();
-                    // Try and put the byte in the queue.
-                    if queue.enqueue(*byte).is_ok() {
-                        // It worked! We must have had space.
-                        if !pac::NVIC::is_enabled(self.interrupt) {
-                            unsafe {
-                                // Now enable the UART interrupt in the *Nested
-                                // Vectored Interrupt Controller*, which is part
-                                // of the Cortex-M0+ core. If the FIFO has space,
-                                // the interrupt will run as soon as we're out of
-                                // the closure.
-                                pac::NVIC::unmask(self.interrupt);
-                                // We also have to kick the IRQ in case the FIFO
-                                // was already below the threshold level.
-                                pac::NVIC::pend(self.interrupt);
-                            }
-                        }
-                        written = true;
-                    }
-                });
-            }
-        }
-    }
-}
-
-impl core::fmt::Write for &UartQueue {
-    /// This function allows us to `writeln!` on our global static UART queue.
-    /// Note we have an impl for &UartQueue, because our global static queue
-    /// is not mutable and `core::fmt::Write` takes mutable references.
-    fn write_str(&mut self, data: &str) -> core::fmt::Result {
-        self.write_bytes_blocking(data.as_bytes());
-        Ok(())
-    }
-}
-
-
+static mut USB_QUEUE: Queue<u8, 256> = Queue::new();
 
 
 #[entry]
@@ -257,11 +173,16 @@ fn main() -> ! {
     spi_cs.set_high().unwrap(); // set inactif
     delay.delay_ms(200);
 
+    let mut usb_consumer = unsafe { USB_QUEUE.split().1};
+
     loop {
-        // Check if we have data to transmit
-        while let Some(byte) = UART_TX_QUEUE.peek_byte() {
-            UART_TX_QUEUE.read_byte();
+
+        match usb_consumer.dequeue() {
+            Some(val) => info!("{}", val),
+            None => (), // ignore
         }
+        
+
         // Check for new data
         // if usb_dev.poll(&mut [&mut serial]) {
         //     let mut buf = [0u8; 64];
@@ -308,6 +229,8 @@ unsafe fn USBCTRL_IRQ() {
     let serial = USB_SERIAL.as_mut().unwrap();
     // let spi = SPI_INSTANCE.as_mut().unwrap();
 
+    let mut usb_producer = unsafe { USB_QUEUE.split().0 };
+
     // Say hello exactly once on start-up
     if !SAID_HELLO.load(Ordering::Relaxed) {
         SAID_HELLO.store(true, Ordering::Relaxed);
@@ -326,11 +249,9 @@ unsafe fn USBCTRL_IRQ() {
             }
             Ok(count) => {
 
-
-                UART_TX_QUEUE.write_bytes_blocking(buf[..count].as_ref());
-
                 // Convert to upper case
                 buf.iter_mut().take(count).for_each(|b| {
+                    usb_producer.enqueue(*b).ok().unwrap();
                     b.make_ascii_uppercase();
                 });
 
