@@ -11,15 +11,11 @@ use embedded_hal::digital::v2::{OutputPin, ToggleableOutputPin};
 use embedded_hal::prelude::*;
 use panic_probe as _;
 
-use core::convert::Infallible;
-
 // the interrupt attribute comes from the device crate not from cortex-m-rt
 use rp_pico::hal::pac::interrupt;
 
 // Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico as bsp;
-// use sparkfun_pro_micro_rp2040 as bsp;
 
 // Embed the `Hz` function/trait:
 use fugit::RateExtU32;
@@ -46,24 +42,8 @@ static mut USB_BUS: Option<UsbBusAllocator<usb::UsbBus>> = None;
 /// The USB Serial Device Driver (shared with the interrupt).
 static mut USB_SERIAL: Option<SerialPort<usb::UsbBus>> = None;
 
-/// Alias the type for our SPI to make things clearer.
-// type SpiPins = (
-//     gpio::Pin<Gpio2, gpio::FunctionSpi, gpio::PullNone>,
-//     gpio::Pin<Gpio3 as spi::ValidPinIdTx<pac::SPI0>, gpio::FunctionSpi, gpio::PullNone>,
-//     gpio::Pin<Gpio4, gpio::FunctionSpi, gpio::PullNone>,
-// );
-// type SpiPins = (
-//     dyn spi::ValidPinIdSck<pac::SPI0>,
-//     dyn spi::ValidPinIdTx<pac::SPI0>,
-//     dyn spi::ValidPinIdRx<pac::SPI0>,
-// );
-
-// type Spi = spi::Spi<spi::Enabled, pac::SPI0, SpiPins, 8>;
-
-// static mut SPI_INSTANCE: Option<Spi> = None;
-
+// QUEUE used to exchange data between irq and main
 use heapless::spsc::Queue;
-
 static mut USB_QUEUE: Queue<u8, 256> = Queue::new();
 
 
@@ -160,15 +140,12 @@ fn main() -> ! {
     let spi = spi::Spi::<_, _, _, 8>::new(pac.SPI0, (spi_mosi, spi_miso, spi_sclk));
 
     // initialised SPI
-    let spi = spi.init(
+    let mut spi = spi.init(
         &mut pac.RESETS,
         clocks.peripheral_clock.freq(),
         400.kHz(),
         embedded_hal::spi::MODE_0,
     );
-    // unsafe {
-    //     SPI_INSTANCE = Some(spi);
-    // }
 
     spi_cs.set_high().unwrap(); // set inactif
     delay.delay_ms(200);
@@ -177,43 +154,19 @@ fn main() -> ! {
 
     loop {
 
-        match usb_consumer.dequeue() {
-            Some(val) => info!("{}", val),
-            None => (), // ignore
+        while usb_consumer.ready() {            
+            match usb_consumer.dequeue() {
+                Some(val) => {
+                    info!("{}", val);
+                    let mut t = [val];
+                    spi_cs.set_low().unwrap();
+                    let _transfer_success = spi.transfer(&mut t);
+                    spi_cs.set_high().unwrap();
+                }
+                None => (), // ignore
+            }
+            led_pin.toggle().unwrap(); // toggle led when data transmit to SPI
         }
-        
-
-        // Check for new data
-        // if usb_dev.poll(&mut [&mut serial]) {
-        //     let mut buf = [0u8; 64];
-        //     match serial.read(&mut buf) {
-        //         Err(_e) => {
-        //             // Do nothing
-        //         }
-        //         Ok(0) => {
-        //             // Do nothing
-        //         }
-        //         Ok(count) => {
-        //             led_pin.toggle().unwrap(); // Toggle led each time data are received
-
-        //             // send all received data on SPI at once
-        //             {
-        //                 spi_cs.set_low().unwrap();
-        //                 let _transfer_success = spi.transfer(&mut buf[..count]);
-        //                 spi_cs.set_high().unwrap();
-        //                 let _ = serial.write(_transfer_success.unwrap());
-        //             }
-
-        //             // clean all to ensure no issue
-        //             for n in 0..count {
-        //                 buf[n] = 0u8;
-        //             }
-
-        //         }
-        //     }
-        // }
-        led_pin.toggle().unwrap();
-        delay.delay_ms(500);
     }
 }
 
