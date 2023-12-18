@@ -2,33 +2,35 @@
 use crate::ha;
 use heapless::Vec;
 
-#[derive(Debug)]
-pub enum PwmOutputState {
-    Disable,
-    Enable,
-}
+// #[derive(Debug)]
+// pub enum PwmOutputState {
+//     Disable,
+//     Enable,
+// }
 
-impl PwmOutputState {
-    pub fn from_u8(x: u8) -> Option<Self> {
-        match x {
-            0 => Some(Self::Disable),
-            1 => Some(Self::Enable),
-            _ => None,
-        }
-    }
+// impl PwmOutputState {
+//     pub fn from_u8(x: u8) -> Option<Self> {
+//         match x {
+//             0 => Some(Self::Disable),
+//             1 => Some(Self::Enable),
+//             _ => None,
+//         }
+//     }
 
-    pub fn to_u8(&self) -> u8 {
-        match self {
-            Self::Disable => 0,
-            Self::Enable => 1,
-        }
-    }
-}
+//     pub fn to_u8(&self) -> u8 {
+//         match self {
+//             Self::Disable => 0,
+//             Self::Enable => 1,
+//         }
+//     }
+// }
 
 //////////////////////////////////////
 
 #[derive(Debug)]
 pub enum Request {
+    Enable,
+    Disable,
     SetFrequency(f32),
     GetFrequency,
     SetDutyCycle(f32),

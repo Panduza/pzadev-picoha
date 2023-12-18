@@ -22,6 +22,7 @@ embedded-time = "0.12.1"
 panic-halt = "0.2.0"
 fugit = "0.3.6"
 
+const-random  = "0.1.15"
 defmt = "0.3"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }

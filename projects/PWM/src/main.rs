@@ -1,8 +1,10 @@
 #![no_std]
 #![no_main]
 
+// mod app;
 mod board;
 mod platform;
+mod platform_io;
 
 use board::Board;
 use platform::platform_impl::Platform;
@@ -45,18 +47,25 @@ fn main() -> ! {
 
     let usb_bus = board.usb_bus;
 
-    let mut platform = Platform::init(board.delay, &usb_bus).unwrap();
+    let mut platform = Platform::init(
+        board.pins,
+        board.pwm_slices,
+        board.delay,
+        board.timer,
+        &usb_bus,
+    )
+    .unwrap();
 
     let mut encoder = Encoder::<64>::new();
     let mut decoder = Decoder::<64>::new();
 
     let mut state = true;
 
-    let mut pwm_output_6_a = PwmOutput_A::new(board.pwm_slices.pwm6, board.pins.gpio12);
-    let result = pwm_output_6_a.set_freq(1550.3);
-    pwm_output_6_a.set_duty(27.9);
-    let duty_6_a = pwm_output_6_a.get_duty();
-    pwm_output_6_a.enable();
+    // let mut pwm_output_6_a = PwmOutput_A::new(board.pwm_slices.pwm6, board.pins.gpio12);
+    // let result = pwm_output_6_a.set_freq(1550.3);
+    // pwm_output_6_a.set_duty(27.9);
+    // let duty_6_a = pwm_output_6_a.get_duty();
+    // pwm_output_6_a.enable();
 
     loop {
         if !platform.usb.dev.poll(&mut [&mut platform.usb.serial]) {
