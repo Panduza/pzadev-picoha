@@ -143,7 +143,7 @@ class StatusErrGeneric:
         return MsgFrame(code = Code.ErrGeneric, data=self.msg.encode("utf-8"))
 
     @classmethod
-    def from_frame(self, frame: MsgFrame) -> "StatusErrGeneric":
+    def from_frame(cls, frame: MsgFrame) -> "StatusErrGeneric":
         if frame.code != Code.ErrGeneric:
             raise ValueError(f"Invalid code for {cls}: {frame.code}")
         return cls(msg = frame.data.decode("utf-8"))
